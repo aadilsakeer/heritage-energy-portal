@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { BrowserRouter, Route, Routes, ScrollRestoration } from 'react-router-dom'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { LoadingSkeleton } from '@/components/cards/LoadingSkeleton'
 import { AppShell } from '@/components/layout/AppShell'
@@ -25,7 +25,6 @@ export default function App() {
         <BrowserRouter>
           <RefreshProvider>
             <NotificationProvider>
-              <ScrollRestoration />
               <Routes>
                 <Route element={<AppShell />}>
                   <Route
