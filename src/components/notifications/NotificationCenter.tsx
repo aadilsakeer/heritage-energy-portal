@@ -59,7 +59,7 @@ export function NotificationCenter() {
         type="button"
         variant="ghost"
         size="icon"
-        className="relative rounded-2xl"
+        className="touch-target relative rounded-2xl"
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
         onClick={() => setOpen((current) => !current)}
       >
@@ -103,9 +103,18 @@ export function NotificationCenter() {
               </div>
               <div className="max-h-[min(60vh,24rem)] overflow-y-auto">
                 {notifications.length === 0 ? (
-                  <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-                    No notifications yet
-                  </p>
+                  <div className="flex flex-col items-center px-4 py-10 text-center">
+                    <img
+                      src="/icons/icon-192.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="mb-4 h-12 w-12 rounded-2xl object-contain p-1 opacity-60"
+                    />
+                    <p className="text-subtitle">No notifications yet</p>
+                    <p className="text-caption mt-2">
+                      Bill updates and payment alerts will appear here.
+                    </p>
+                  </div>
                 ) : (
                   notifications.map((item) => (
                     <button

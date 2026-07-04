@@ -23,7 +23,7 @@ import { useProperty } from '@/context/PropertyContext'
 import { useRefresh } from '@/context/RefreshContext'
 import { useAsync } from '@/hooks/useAsync'
 import { notify } from '@/lib/toast'
-import { easeOut } from '@/lib/motion'
+import { pagePanel } from '@/lib/motion'
 import {
   fetchBillById,
   fetchLatestPublishedBill,
@@ -132,8 +132,9 @@ export function BillPage() {
     return (
       <PageContainer>
         <EmptyState
+          branded
           icon={Receipt}
-          title="No published bill."
+          title="No published bill"
           description={`Publish a bill for ${property?.label ?? 'this property'} to see the breakdown.`}
         />
       </PageContainer>
@@ -206,10 +207,7 @@ export function BillPage() {
       <AnimatePresence mode="wait">
         <motion.div
           key={bill.id}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.28, ease: easeOut }}
+          {...pagePanel}
           className="space-y-6 sm:space-y-8"
         >
           <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

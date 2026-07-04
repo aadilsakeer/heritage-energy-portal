@@ -3,18 +3,27 @@ import { Building2, Home } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useProperty } from '@/context/PropertyContext'
 import { cn } from '@/lib/utils'
+import { springSegment } from '@/lib/motion'
 import { Skeleton } from '@/components/ui/skeleton'
 
-const icons: Record<string, typeof Home> = {
-  home: Home,
-  heritage: Building2,
+const propertyMeta: Record<
+  string,
+  { Icon: typeof Home; emoji: string }
+> = {
+  home: { Icon: Home, emoji: '🏠' },
+  heritage: { Icon: Building2, emoji: '🏢' },
 }
 
 export function PropertySwitcher() {
   const { properties, propertyId, setPropertyId, isLoading } = useProperty()
 
   if (isLoading) {
-    return <Skeleton className="h-12 w-full rounded-2xl" aria-label="Loading properties" />
+    return (
+      <Skeleton
+        className="h-[52px] w-full rounded-2xl"
+        aria-label="Loading properties"
+      />
+    )
   }
 
   if (properties.length === 0) {
@@ -25,11 +34,12 @@ export function PropertySwitcher() {
     <div
       role="tablist"
       aria-label="Select property"
-      className="relative grid grid-cols-2 gap-1 rounded-2xl border border-border/60 bg-muted/60 p-1 shadow-soft backdrop-blur-xl"
+      className="relative grid grid-cols-2 gap-1.5 rounded-2xl border border-border/50 bg-muted/50 p-1.5 shadow-soft backdrop-blur-xl"
     >
       {properties.map((property) => {
         const isActive = property.id === propertyId
-        const Icon = icons[property.slug] ?? Building2
+        const meta = propertyMeta[property.slug] ?? propertyMeta.heritage
+        const Icon = meta.Icon
 
         return (
           <button
@@ -42,10 +52,15 @@ export function PropertySwitcher() {
             tabIndex={isActive ? 0 : -1}
             onClick={() => setPropertyId(property.id)}
             onKeyDown={(event) =>
-              handleKeyDown(event, property.id, properties.map((item) => item.id), setPropertyId)
+              handleKeyDown(
+                event,
+                property.id,
+                properties.map((item) => item.id),
+                setPropertyId,
+              )
             }
             className={cn(
-              'relative z-10 flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+              'relative z-10 flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-medium transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               isActive
                 ? 'text-foreground'
@@ -55,12 +70,15 @@ export function PropertySwitcher() {
             {isActive ? (
               <motion.span
                 layoutId="property-segment"
-                className="absolute inset-0 rounded-xl bg-card shadow-soft"
-                transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                className="absolute inset-0 rounded-xl border border-primary/10 bg-card shadow-soft"
+                transition={springSegment}
                 aria-hidden="true"
               />
             ) : null}
-            <Icon className="relative z-10 h-4 w-4" aria-hidden="true" />
+            <span className="relative z-10 text-base leading-none" aria-hidden="true">
+              {meta.emoji}
+            </span>
+            <Icon className="relative z-10 hidden h-4 w-4 sm:block" aria-hidden="true" />
             <span className="relative z-10 truncate">
               <span className="sm:hidden">{property.shortLabel}</span>
               <span className="hidden sm:inline">{property.label}</span>

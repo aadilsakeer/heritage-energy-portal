@@ -334,7 +334,7 @@ export function AdminPage() {
     <PageContainer>
       <div className="space-y-6 sm:space-y-8">
         <div>
-          <BrandLogo imageClassName="h-12 max-w-[10rem]" />
+          <BrandLogo variant="wide" imageClassName="max-h-14 sm:max-h-16" />
           <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
             Meter Uploads
           </h1>
@@ -466,8 +466,9 @@ export function AdminPage() {
           />
           {uploads.length === 0 ? (
             <EmptyState
+              branded
               icon={FileText}
-              title="No uploads yet."
+              title="No uploads yet"
               description="Upload a bill to get started."
             />
           ) : (

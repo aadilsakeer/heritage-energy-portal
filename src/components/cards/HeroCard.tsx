@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import type { CurrentBill } from '@/types'
 import { ROUTES } from '@/constants'
-import { easeOut } from '@/lib/motion'
+import { cardEnter } from '@/lib/motion'
 import { formatBillStatus } from '@/lib/payments'
 import { formatCurrency, formatDate } from '@/utils/format'
 
@@ -15,36 +15,38 @@ import { CountUp } from '@/components/ui/CountUp'
 interface HeroCardProps {
   bill: CurrentBill
   onDownloadInvoice?: () => void
+  isDownloading?: boolean
 }
 
-export function HeroCard({ bill, onDownloadInvoice }: HeroCardProps) {
+export function HeroCard({
+  bill,
+  onDownloadInvoice,
+  isDownloading = false,
+}: HeroCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: easeOut }}
-    >
-      <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary via-emerald-600 to-emerald-800 text-primary-foreground shadow-soft dark:from-emerald-500 dark:via-emerald-600 dark:to-emerald-900">
+    <motion.div {...cardEnter}>
+      <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary via-brand-secondary to-primary text-primary-foreground shadow-soft">
         <CardContent className="relative p-6 sm:p-8">
           <div
             className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10 blur-3xl"
             aria-hidden="true"
           />
           <div
-            className="pointer-events-none absolute -bottom-12 left-1/4 h-36 w-36 rounded-full bg-accent/25 blur-3xl"
+            className="pointer-events-none absolute -bottom-12 left-1/4 h-36 w-36 rounded-full bg-brand-accent/20 blur-3xl"
             aria-hidden="true"
           />
 
-          <div className="relative space-y-6">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-primary-foreground/80">
-                  Current Bill
-                  {bill.propertyLabel ? ` · ${bill.propertyLabel}` : ''}
+          <div className="relative space-y-8">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0 space-y-1">
+                <p className="text-caption text-primary-foreground/75">
+                  Current Bill · {bill.month}
                 </p>
-                <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-                  {bill.month}
-                </h1>
+                {bill.propertyLabel ? (
+                  <p className="text-sm font-medium text-primary-foreground/90">
+                    {bill.propertyLabel}
+                  </p>
+                ) : null}
               </div>
               <Badge
                 variant="secondary"
@@ -54,39 +56,38 @@ export function HeroCard({ bill, onDownloadInvoice }: HeroCardProps) {
               </Badge>
             </div>
 
-            <div>
-              <p className="text-sm text-primary-foreground/75">Remaining</p>
-              <p className="mt-1 text-4xl font-semibold tracking-tight sm:text-5xl">
-                <CountUp value={bill.balance} currency={bill.currency} />
-              </p>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-md">
-                  <p className="text-xs text-primary-foreground/70">Bill Amount</p>
-                  <p className="mt-0.5 text-sm font-medium">
-                    {formatCurrency(bill.billAmount, bill.currency)}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-md">
-                  <p className="text-xs text-primary-foreground/70">Credit Applied</p>
-                  <p className="mt-0.5 text-sm font-medium">
-                    {formatCurrency(bill.creditApplied, bill.currency)}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-md">
-                  <p className="text-xs text-primary-foreground/70">Final Amount</p>
-                  <p className="mt-0.5 text-sm font-medium">
-                    {formatCurrency(bill.finalAmount, bill.currency)}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-md">
-                  <p className="text-xs text-primary-foreground/70">Paid</p>
-                  <p className="mt-0.5 text-sm font-medium">
-                    {formatCurrency(bill.totalPaid, bill.currency)}
-                  </p>
-                </div>
+            <div className="space-y-6">
+              <div>
+                <p className="text-caption text-primary-foreground/75">
+                  Remaining Amount
+                </p>
+                <p className="text-money mt-2 text-primary-foreground">
+                  <CountUp value={bill.balance} currency={bill.currency} />
+                </p>
               </div>
-              <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-sm text-primary-foreground/90 backdrop-blur-md">
-                <CalendarDays className="h-4 w-4" aria-hidden="true" />
+
+              <div className="space-y-3 border-t border-white/15 pt-6">
+                <AmountRow
+                  label="Bill Amount"
+                  value={formatCurrency(bill.billAmount, bill.currency)}
+                />
+                <AmountRow
+                  label="Paid"
+                  value={formatCurrency(bill.totalPaid, bill.currency)}
+                />
+                <AmountRow
+                  label="Credit Applied"
+                  value={formatCurrency(bill.creditApplied, bill.currency)}
+                />
+                <AmountRow
+                  label="Final Amount"
+                  value={formatCurrency(bill.finalAmount, bill.currency)}
+                  emphasized
+                />
+              </div>
+
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm text-primary-foreground/90 backdrop-blur-md">
+                <CalendarDays className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>Due {formatDate(bill.dueDate)}</span>
               </div>
             </div>
@@ -94,8 +95,8 @@ export function HeroCard({ bill, onDownloadInvoice }: HeroCardProps) {
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button
                 asChild
-                variant="secondary"
-                className="bg-white text-emerald-900 hover:bg-white/90"
+                size="lg"
+                className="min-h-12 bg-white text-primary hover:bg-white/90 active:bg-white/85"
               >
                 <Link
                   to={`${ROUTES.bill}/${bill.id}`}
@@ -108,8 +109,10 @@ export function HeroCard({ bill, onDownloadInvoice }: HeroCardProps) {
               <Button
                 type="button"
                 variant="outline"
+                size="lg"
                 aria-label="Download invoice"
-                className="border-white/25 bg-white/10 text-primary-foreground hover:bg-white/15 hover:text-primary-foreground"
+                loading={isDownloading}
+                className="min-h-12 border-white/30 bg-white/10 text-primary-foreground hover:bg-white/15 hover:text-primary-foreground active:bg-white/20"
                 onClick={onDownloadInvoice}
               >
                 <Download className="h-4 w-4" aria-hidden="true" />
@@ -120,5 +123,30 @@ export function HeroCard({ bill, onDownloadInvoice }: HeroCardProps) {
         </CardContent>
       </Card>
     </motion.div>
+  )
+}
+
+function AmountRow({
+  label,
+  value,
+  emphasized = false,
+}: {
+  label: string
+  value: string
+  emphasized?: boolean
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className="text-sm text-primary-foreground/75">{label}</span>
+      <span
+        className={
+          emphasized
+            ? 'text-money-sm text-primary-foreground'
+            : 'text-base font-medium tabular-nums text-primary-foreground/95'
+        }
+      >
+        {value}
+      </span>
+    </div>
   )
 }

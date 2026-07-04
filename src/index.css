@@ -32,33 +32,53 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-accent: var(--brand-accent);
+  --color-status-success: var(--status-success);
+  --color-status-warning: var(--status-warning);
+  --color-status-info: var(--status-info);
+  --color-status-danger: var(--status-danger);
+
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-12: 3rem;
 }
 
 :root {
   --radius: 1.5rem;
   --background: oklch(0.985 0.004 155);
   --foreground: oklch(0.2 0.02 160);
-  --card: oklch(1 0 0 / 0.86);
+  --card: oklch(1 0 0 / 0.92);
   --card-foreground: oklch(0.2 0.02 160);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.02 160);
-  --primary: oklch(0.34 0.08 155);
+  --primary: #004d2c;
   --primary-foreground: oklch(0.99 0.01 155);
   --secondary: oklch(0.96 0.015 155);
   --secondary-foreground: oklch(0.28 0.04 155);
   --muted: oklch(0.96 0.01 160);
   --muted-foreground: oklch(0.45 0.02 160);
-  --accent: oklch(0.52 0.15 250);
-  --accent-foreground: oklch(0.99 0.01 250);
+  --accent: #fdb515;
+  --accent-foreground: oklch(0.22 0.04 85);
   --destructive: oklch(0.52 0.19 25);
   --border: oklch(0.91 0.01 160);
   --input: oklch(0.91 0.01 160);
-  --ring: oklch(0.52 0.14 155);
-  --chart-1: oklch(0.52 0.14 155);
-  --chart-2: oklch(0.52 0.15 250);
-  --chart-3: oklch(0.68 0.12 155);
-  --chart-4: oklch(0.62 0.13 230);
-  --chart-5: oklch(0.42 0.1 160);
+  --ring: #0f8a5f;
+  --brand-secondary: #0f8a5f;
+  --brand-accent: #fdb515;
+  --status-success: #0f8a5f;
+  --status-warning: #f59e0b;
+  --status-info: #2563eb;
+  --status-danger: #dc2626;
+  --chart-1: #004d2c;
+  --chart-2: #0f8a5f;
+  --chart-3: #fdb515;
+  --chart-4: #2563eb;
+  --chart-5: #64748b;
   --shadow-soft: 0 8px 30px -10px oklch(0.2 0.02 160 / 0.12),
     0 2px 8px -2px oklch(0.2 0.02 160 / 0.05);
 }
@@ -66,31 +86,36 @@
 .dark {
   --background: oklch(0.145 0.015 160);
   --foreground: oklch(0.97 0.01 160);
-  --card: oklch(0.19 0.02 160 / 0.82);
+  --card: oklch(0.19 0.02 160 / 0.88);
   --card-foreground: oklch(0.97 0.01 160);
   --popover: oklch(0.19 0.02 160);
   --popover-foreground: oklch(0.97 0.01 160);
-  --primary: oklch(0.72 0.12 155);
-  --primary-foreground: oklch(0.16 0.03 155);
+  --primary: #2d9a6a;
+  --primary-foreground: oklch(0.12 0.03 155);
   --secondary: oklch(0.24 0.025 160);
   --secondary-foreground: oklch(0.94 0.01 160);
   --muted: oklch(0.24 0.02 160);
   --muted-foreground: oklch(0.72 0.02 160);
-  --accent: oklch(0.68 0.15 250);
-  --accent-foreground: oklch(0.16 0.03 250);
+  --accent: #fdb515;
+  --accent-foreground: oklch(0.16 0.04 85);
   --destructive: oklch(0.62 0.19 25);
   --border: oklch(0.3 0.02 160);
   --input: oklch(0.3 0.02 160);
-  --ring: oklch(0.72 0.14 155);
-  --chart-1: oklch(0.72 0.14 155);
-  --chart-2: oklch(0.68 0.15 250);
-  --chart-3: oklch(0.76 0.11 155);
-  --chart-4: oklch(0.7 0.13 230);
-  --chart-5: oklch(0.55 0.1 160);
+  --ring: #2d9a6a;
+  --brand-secondary: #2d9a6a;
+  --brand-accent: #fdb515;
+  --status-success: #34d399;
+  --status-warning: #fbbf24;
+  --status-info: #60a5fa;
+  --status-danger: #f87171;
+  --chart-1: #2d9a6a;
+  --chart-2: #34d399;
+  --chart-3: #fdb515;
+  --chart-4: #60a5fa;
+  --chart-5: #94a3b8;
   --shadow-soft: 0 10px 32px -12px oklch(0 0 0 / 0.45),
     0 2px 8px -2px oklch(0 0 0 / 0.25);
 }
-
 
 @layer base {
   * {
@@ -106,6 +131,7 @@
 
   body {
     @apply bg-background text-foreground min-h-svh font-sans;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 
@@ -114,7 +140,7 @@
   }
 
   :focus-visible {
-    @apply outline-none;
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -129,6 +155,43 @@
   }
 }
 
+@layer components {
+  .text-title {
+    @apply text-xl font-semibold tracking-tight text-foreground sm:text-2xl;
+  }
+
+  .text-subtitle {
+    @apply text-base font-medium tracking-tight text-foreground sm:text-lg;
+  }
+
+  .text-body {
+    @apply text-sm leading-relaxed text-foreground;
+  }
+
+  .text-caption {
+    @apply text-xs leading-normal text-muted-foreground;
+  }
+
+  .text-money {
+    @apply text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl;
+  }
+
+  .text-money-sm {
+    @apply text-lg font-semibold tracking-tight tabular-nums sm:text-xl;
+  }
+
+  .text-status {
+    @apply text-xs font-medium uppercase tracking-wide;
+  }
+
+  .surface-card {
+    @apply rounded-3xl border border-border/50 bg-card/90 shadow-soft backdrop-blur-xl;
+  }
+
+  .touch-target {
+    @apply min-h-11 min-w-11;
+  }
+}
 
 @utility shadow-soft {
   box-shadow: var(--shadow-soft);

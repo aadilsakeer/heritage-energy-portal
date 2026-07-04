@@ -36,7 +36,7 @@ export function AccountSummaryCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
     >
-      <Card className="overflow-hidden border-border/50 bg-card/80 shadow-soft backdrop-blur-xl">
+      <Card className="surface-card overflow-hidden">
         <CardContent className="space-y-5 p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>

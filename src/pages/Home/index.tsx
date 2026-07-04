@@ -20,7 +20,7 @@ import { SectionHeader } from '@/components/layout/SectionHeader'
 import { useProperty } from '@/context/PropertyContext'
 import { useRefresh } from '@/context/RefreshContext'
 import { useAsync } from '@/hooks/useAsync'
-import { easeOut } from '@/lib/motion'
+import { pagePanel } from '@/lib/motion'
 import {
   buildQuickStats,
   buildSavingsSummary,
@@ -145,10 +145,7 @@ export function HomePage() {
           aria-labelledby={
             propertyId ? `property-tab-${propertyId}` : undefined
           }
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.28, ease: easeOut }}
+          {...pagePanel}
           className="space-y-6 sm:space-y-8"
         >
           {latestBill && latestSummary ? (
@@ -186,8 +183,9 @@ export function HomePage() {
             </>
           ) : (
             <EmptyState
+              branded
               icon={Receipt}
-              title="No bill has been published yet."
+              title="No bill has been published yet"
               description={`Publish a bill for ${property?.label ?? 'this property'} to see amounts and savings.`}
             />
           )}
@@ -201,6 +199,7 @@ export function HomePage() {
             />
             {!savings ? (
               <EmptyState
+                branded
                 icon={Leaf}
                 title="No savings yet"
                 description="Savings appear after your first bill is published."
@@ -237,6 +236,7 @@ export function HomePage() {
             />
             {quickStats.length === 0 ? (
               <EmptyState
+                branded
                 title="No statistics yet"
                 description="Statistics appear after a bill is published."
               />

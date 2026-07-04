@@ -36,15 +36,15 @@ export function StatCard({
       whileHover={{ y: -2 }}
       className={className}
     >
-      <Card className="h-full border-border/50 bg-card/80 shadow-soft backdrop-blur-xl transition-shadow hover:shadow-md">
+      <Card className="surface-card h-full transition-shadow hover:shadow-md">
         <CardContent
           className={cn(
             'flex h-full flex-col gap-4',
-            size === 'large' ? 'p-6 sm:p-7' : 'p-5',
+            size === 'large' ? 'p-6 sm:p-8' : 'p-5 sm:p-6',
           )}
         >
           <div className="flex items-start justify-between gap-3">
-            <p className="text-sm text-muted-foreground">{label}</p>
+            <p className="text-caption">{label}</p>
             {Icon ? (
               <span
                 className={cn(
@@ -63,8 +63,8 @@ export function StatCard({
           <div className="mt-auto space-y-2">
             <p
               className={cn(
-                'font-semibold tracking-tight text-foreground',
-                size === 'large' ? 'text-3xl sm:text-4xl' : 'text-2xl',
+                'font-semibold tracking-tight tabular-nums text-foreground',
+                size === 'large' ? 'text-money-sm sm:text-3xl' : 'text-2xl',
               )}
             >
               {value}

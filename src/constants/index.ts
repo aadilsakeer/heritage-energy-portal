@@ -8,6 +8,9 @@ export const BRAND = {
   maskable192: '/icons/icon-maskable-192.png',
   maskable512: '/icons/icon-maskable-512.png',
   favicon: '/favicon.ico',
+  primary: '#004d2c',
+  secondary: '#0f8a5f',
+  accent: '#fdb515',
   themeColor: '#004d2c',
   backgroundColor: '#ffffff',
 } as const

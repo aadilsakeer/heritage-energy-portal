@@ -14,7 +14,7 @@ import { useProperty } from '@/context/PropertyContext'
 import { useRefresh } from '@/context/RefreshContext'
 import { useAsync } from '@/hooks/useAsync'
 import { notify } from '@/lib/toast'
-import { easeOut } from '@/lib/motion'
+import { pagePanel } from '@/lib/motion'
 import { fetchBillById, fetchBillHistory } from '@/services/billService'
 import { downloadInvoice } from '@/utils/downloadInvoice'
 import { toHistoryItem } from '@/utils/mappers'
@@ -99,10 +99,7 @@ export function HistoryPage() {
       <AnimatePresence mode="wait">
         <motion.div
           key={`${filterPropertyId}-${search}`}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.28, ease: easeOut }}
+          {...pagePanel}
           className="space-y-6 sm:space-y-8"
         >
           <header>
@@ -153,8 +150,9 @@ export function HistoryPage() {
 
           {items.length === 0 ? (
             <EmptyState
+              branded
               icon={Receipt}
-              title={isFilteredEmpty ? 'No matching bills' : 'No bills available.'}
+              title={isFilteredEmpty ? 'No matching bills' : 'No bills available'}
               description={
                 isFilteredEmpty
                   ? 'Try a different month or property filter.'

@@ -12,7 +12,7 @@ import { CountUp } from '@/components/ui/CountUp'
 import { useProperty } from '@/context/PropertyContext'
 import { useRefresh } from '@/context/RefreshContext'
 import { useAsync } from '@/hooks/useAsync'
-import { easeOut } from '@/lib/motion'
+import { pagePanel } from '@/lib/motion'
 import { fetchAnalytics } from '@/services/analyticsService'
 import { formatCurrency, formatEnergy } from '@/utils/format'
 
@@ -115,10 +115,7 @@ export function AnalyticsPage() {
           aria-labelledby={
             propertyId ? `property-tab-${propertyId}` : undefined
           }
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.28, ease: easeOut }}
+          {...pagePanel}
           className="space-y-6 sm:space-y-8"
         >
           <header>
@@ -133,8 +130,9 @@ export function AnalyticsPage() {
 
           {!hasData ? (
             <EmptyState
+              branded
               icon={BarChart3}
-              title="Upload your first bill to see analytics."
+              title="Upload your first bill to see analytics"
               description="Charts and insights appear after a bill is published."
             />
           ) : null}
