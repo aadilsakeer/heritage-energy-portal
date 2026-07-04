@@ -55,6 +55,9 @@ export function AnalyticsPage() {
             averageConsumption: 0,
             lifetimeSavings: 0,
             lifetimeSolarGeneration: 0,
+            outstandingCredits: 0,
+            creditsUsed: 0,
+            totalCreditsGiven: 0,
           },
         }
       }
@@ -166,6 +169,21 @@ export function AnalyticsPage() {
                   label="Lifetime Solar Generation"
                   value={formatEnergy(summary.lifetimeSolarGeneration)}
                   delay={0.12}
+                />
+                <StatCard
+                  label="Outstanding Credits"
+                  value={formatCurrency(summary.outstandingCredits)}
+                  delay={0.14}
+                />
+                <StatCard
+                  label="Credits Used"
+                  value={formatCurrency(summary.creditsUsed)}
+                  delay={0.16}
+                />
+                <StatCard
+                  label="Total Credits Given"
+                  value={formatCurrency(summary.totalCreditsGiven)}
+                  delay={0.18}
                 />
               </div>
               <p className="mt-3 text-sm text-muted-foreground">

@@ -32,6 +32,8 @@ export interface Bill {
   discountAmount: number | null
   fixedCharge: number | null
   tenantTotal: number | null
+  creditApplied: number
+  amountPayable: number | null
   securityDeposit: number
   arrears: number
   rate: number | null
@@ -68,6 +70,18 @@ export interface Payment {
   createdAt: string
 }
 
+export interface CustomerCredit {
+  id: string
+  propertyId: string
+  billId: string | null
+  amount: number
+  reason: string
+  remainingAmount: number
+  createdAt: string
+  appliedAt: string | null
+  status: 'active' | 'used' | 'cancelled'
+}
+
 export interface CurrentBill {
   id: string
   month: string
@@ -80,6 +94,9 @@ export interface CurrentBill {
   totalPaid: number
   balance: number
   paymentPercentage: number
+  accountCredit: number
+  creditApplied: number
+  finalAmount: number
 }
 
 export interface SavingsSummary {
@@ -119,6 +136,7 @@ export interface HistoryItem {
   currency: string
   propertyId: string
   propertyLabel?: string
+  creditApplied: number
 }
 
 export interface MonthlyMetric {
@@ -141,6 +159,9 @@ export interface AnalyticsSummary {
   averageConsumption: number
   lifetimeSavings: number
   lifetimeSolarGeneration: number
+  outstandingCredits: number
+  creditsUsed: number
+  totalCreditsGiven: number
 }
 
 export interface AnalyticsData {

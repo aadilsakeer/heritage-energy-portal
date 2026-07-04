@@ -59,7 +59,7 @@ export function HeroCard({ bill, onDownloadInvoice }: HeroCardProps) {
               <p className="mt-1 text-4xl font-semibold tracking-tight sm:text-5xl">
                 <CountUp value={bill.balance} currency={bill.currency} />
               </p>
-              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-md">
                   <p className="text-xs text-primary-foreground/70">Bill Amount</p>
                   <p className="mt-0.5 text-sm font-medium">
@@ -67,15 +67,21 @@ export function HeroCard({ bill, onDownloadInvoice }: HeroCardProps) {
                   </p>
                 </div>
                 <div className="rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-md">
-                  <p className="text-xs text-primary-foreground/70">Paid</p>
+                  <p className="text-xs text-primary-foreground/70">Credit Applied</p>
                   <p className="mt-0.5 text-sm font-medium">
-                    {formatCurrency(bill.totalPaid, bill.currency)}
+                    {formatCurrency(bill.creditApplied, bill.currency)}
                   </p>
                 </div>
                 <div className="rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-md">
-                  <p className="text-xs text-primary-foreground/70">Progress</p>
+                  <p className="text-xs text-primary-foreground/70">Final Amount</p>
                   <p className="mt-0.5 text-sm font-medium">
-                    {bill.paymentPercentage.toFixed(0)}%
+                    {formatCurrency(bill.finalAmount, bill.currency)}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-md">
+                  <p className="text-xs text-primary-foreground/70">Paid</p>
+                  <p className="mt-0.5 text-sm font-medium">
+                    {formatCurrency(bill.totalPaid, bill.currency)}
                   </p>
                 </div>
               </div>

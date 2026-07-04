@@ -1,4 +1,5 @@
-import type { BillStatus, Payment } from '@/types'
+import type { Bill, BillStatus, Payment } from '@/types'
+import { getBillAmountDue, roundMoney } from '@/lib/credits'
 
 export const PAYABLE_STATUSES: BillStatus[] = [
   'published',
@@ -18,25 +19,34 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number]['value']
 
 export interface PaymentSummary {
   billAmount: number
+  creditApplied: number
+  finalAmount: number
   totalPaid: number
   balance: number
   paymentPercentage: number
 }
 
 export function computePaymentSummary(
-  billAmount: number,
+  bill: Bill,
   payments: Payment[],
 ): PaymentSummary {
-  const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0)
-  const balance = Math.max(0, Math.round((billAmount - totalPaid) * 100) / 100)
+  const billAmount = bill.tenantTotal ?? 0
+  const creditApplied = bill.creditApplied ?? 0
+  const finalAmount = getBillAmountDue(bill)
+  const totalPaid = roundMoney(
+    payments.reduce((sum, payment) => sum + payment.amount, 0),
+  )
+  const balance = Math.max(0, roundMoney(finalAmount - totalPaid))
   const paymentPercentage =
-    billAmount > 0
-      ? Math.min(100, Math.round((totalPaid / billAmount) * 10000) / 100)
+    finalAmount > 0
+      ? Math.min(100, roundMoney((totalPaid / finalAmount) * 100))
       : 0
 
   return {
     billAmount,
-    totalPaid: Math.round(totalPaid * 100) / 100,
+    creditApplied,
+    finalAmount,
+    totalPaid,
     balance,
     paymentPercentage,
   }
@@ -44,15 +54,16 @@ export function computePaymentSummary(
 
 export function derivePaymentStatus(
   currentStatus: BillStatus,
-  billAmount: number,
+  bill: Bill,
   totalPaid: number,
 ): BillStatus {
   if (currentStatus === 'draft' || currentStatus === 'archived') {
     return currentStatus
   }
 
+  const amountDue = getBillAmountDue(bill)
   if (totalPaid <= 0) return 'published'
-  if (totalPaid >= billAmount) return 'paid'
+  if (totalPaid >= amountDue) return 'paid'
   return 'partially_paid'
 }
 

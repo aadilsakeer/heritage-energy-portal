@@ -27,6 +27,7 @@ import {
   fetchLatestPublishedBill,
 } from '@/services/billService'
 import { fetchPayments } from '@/services/paymentService'
+import { fetchCreditsForBill } from '@/services/creditService'
 import { computePaymentSummary, formatBillStatus } from '@/lib/payments'
 import { PaymentHistory } from '@/components/invoice/PaymentHistory'
 import { billStatusVariant } from '@/lib/billStatus'
@@ -52,21 +53,29 @@ export function BillPage() {
       if (billId) {
         const bill = await fetchBillById(billId)
         if (!bill) return null
-        const payments = await fetchPayments(bill.id)
+        const [payments, credits] = await Promise.all([
+          fetchPayments(bill.id),
+          fetchCreditsForBill(bill.id),
+        ])
         return {
           bill,
           payments,
-          summary: computePaymentSummary(bill.tenantTotal ?? 0, payments),
+          credits,
+          summary: computePaymentSummary(bill, payments),
         }
       }
       if (!propertyId) return null
       const bill = await fetchLatestPublishedBill(propertyId)
       if (!bill) return null
-      const payments = await fetchPayments(bill.id)
+      const [payments, credits] = await Promise.all([
+        fetchPayments(bill.id),
+        fetchCreditsForBill(bill.id),
+      ])
       return {
         bill,
         payments,
-        summary: computePaymentSummary(bill.tenantTotal ?? 0, payments),
+        credits,
+        summary: computePaymentSummary(bill, payments),
       }
     },
     [billId, propertyId],
@@ -100,6 +109,7 @@ export function BillPage() {
 
   const bill = billQuery.data?.bill ?? null
   const payments = billQuery.data?.payments ?? []
+  const billCredits = billQuery.data?.credits ?? []
   const paymentSummary = billQuery.data?.summary
   const billProperty =
     properties.find((item) => item.id === bill?.propertyId) ?? property
@@ -268,6 +278,7 @@ export function BillPage() {
               status={bill.status}
               summary={paymentSummary}
               payments={payments}
+              credits={billCredits}
             />
           ) : null}
         </motion.div>

@@ -7,10 +7,17 @@
 -- Extensions
 create extension if not exists "pgcrypto";
 
--- Enum: bill_status
+-- Enum: bill_status (all v1.2 values on fresh install)
+-- Existing databases created before v1.2: run 007a_enum.sql then 007b_payments.sql first.
 do $$
 begin
-  create type public.bill_status as enum ('draft', 'published', 'archived');
+  create type public.bill_status as enum (
+    'draft',
+    'published',
+    'partially_paid',
+    'paid',
+    'archived'
+  );
 exception
   when duplicate_object then null;
 end
@@ -94,18 +101,31 @@ create table if not exists public.bill_events (
   created_at timestamptz not null default now()
 );
 
-alter type public.bill_status add value if not exists 'partially_paid';
-alter type public.bill_status add value if not exists 'paid';
+  create table if not exists public.payments (
+    id uuid primary key default gen_random_uuid(),
+    bill_id uuid not null references public.bills (id) on delete cascade,
+    amount numeric(12, 2) not null check (amount > 0),
+    payment_date date not null default current_date,
+    payment_method text not null default 'bank_transfer',
+    reference text,
+    notes text,
+    created_at timestamptz not null default now()
+  );
 
-create table if not exists public.payments (
+alter table public.bills
+  add column if not exists credit_applied numeric(12, 2) not null default 0,
+  add column if not exists amount_payable numeric(12, 2);
+
+create table if not exists public.customer_credits (
   id uuid primary key default gen_random_uuid(),
-  bill_id uuid not null references public.bills (id) on delete cascade,
+  property_id uuid not null references public.properties (id) on delete cascade,
+  bill_id uuid references public.bills (id) on delete set null,
   amount numeric(12, 2) not null check (amount > 0),
-  payment_date date not null default current_date,
-  payment_method text not null default 'bank_transfer',
-  reference text,
-  notes text,
-  created_at timestamptz not null default now()
+  reason text not null,
+  remaining_amount numeric(12, 2) not null check (remaining_amount >= 0),
+  created_at timestamptz not null default now(),
+  applied_at timestamptz,
+  status text not null default 'active' check (status in ('active', 'used', 'cancelled'))
 );
 
 -- =============================================================================
@@ -129,6 +149,12 @@ create index if not exists bill_events_bill_id_created_idx
 
 create index if not exists payments_bill_id_idx
   on public.payments (bill_id, payment_date desc);
+
+create index if not exists customer_credits_property_status_idx
+  on public.customer_credits (property_id, status, created_at asc);
+
+create index if not exists customer_credits_bill_id_idx
+  on public.customer_credits (bill_id);
 
 -- =============================================================================
 -- updated_at trigger
@@ -160,6 +186,7 @@ alter table public.billing_configuration enable row level security;
 alter table public.bills enable row level security;
 alter table public.bill_events enable row level security;
 alter table public.payments enable row level security;
+alter table public.customer_credits enable row level security;
 
 drop policy if exists "Public read properties" on public.properties;
 drop policy if exists "Public read billing configuration" on public.billing_configuration;
@@ -173,6 +200,10 @@ drop policy if exists "Public read payments" on public.payments;
 drop policy if exists "Public insert payments" on public.payments;
 drop policy if exists "Public update payments" on public.payments;
 drop policy if exists "Public delete payments" on public.payments;
+drop policy if exists "Public read customer credits" on public.customer_credits;
+drop policy if exists "Public insert customer credits" on public.customer_credits;
+drop policy if exists "Public update customer credits" on public.customer_credits;
+drop policy if exists "Public delete customer credits" on public.customer_credits;
 
 create policy "Public read properties"
   on public.properties for select
@@ -222,6 +253,23 @@ create policy "Public update payments"
 
 create policy "Public delete payments"
   on public.payments for delete
+  using (true);
+
+create policy "Public read customer credits"
+  on public.customer_credits for select
+  using (true);
+
+create policy "Public insert customer credits"
+  on public.customer_credits for insert
+  with check (true);
+
+create policy "Public update customer credits"
+  on public.customer_credits for update
+  using (true)
+  with check (true);
+
+create policy "Public delete customer credits"
+  on public.customer_credits for delete
   using (true);
 
 -- =============================================================================
@@ -345,4 +393,5 @@ select property_id, rate, discount_percent, fixed_charge from public.billing_con
 select count(*) as remaining_bills from public.bills;
 select count(*) as remaining_bill_events from public.bill_events;
 select count(*) as remaining_payments from public.payments;
+select count(*) as remaining_customer_credits from public.customer_credits;
 select id, name from storage.buckets where id = 'kseb-bills';

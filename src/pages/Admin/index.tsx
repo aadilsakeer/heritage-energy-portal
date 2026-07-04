@@ -9,6 +9,7 @@ import {
 import { motion } from 'framer-motion'
 import { AuditTimeline } from '@/components/admin/AuditTimeline'
 import { BillReviewForm } from '@/components/admin/BillReviewForm'
+import { CreditSection } from '@/components/admin/CreditSection'
 import { PaymentSection } from '@/components/admin/PaymentSection'
 import { toFormValues } from '@/lib/extractionSchema'
 
@@ -41,6 +42,7 @@ import {
 import { fetchBillEvents } from '@/services/eventService'
 import { fetchBillingConfiguration } from '@/services/propertyService'
 import { fetchPayments } from '@/services/paymentService'
+import { fetchCreditsForProperty } from '@/services/creditService'
 
 import { formatDateTime } from '@/utils/format'
 import { toUploadItem } from '@/utils/mappers'
@@ -103,6 +105,15 @@ export function AdminPage() {
     Boolean(activeBillId),
   )
 
+  const {
+    data: credits,
+    reload: reloadCredits,
+  } = useAsync(
+    async () => (propertyId ? fetchCreditsForProperty(propertyId) : []),
+    [propertyId],
+    Boolean(propertyId),
+  )
+
   const refreshAll = useCallback(async () => {
     await Promise.all([
       reloadUploads(),
@@ -110,8 +121,9 @@ export function AdminPage() {
       reloadBill(),
       reloadEvents(),
       reloadPayments(),
+      reloadCredits(),
     ])
-  }, [reloadUploads, reloadConfig, reloadBill, reloadEvents, reloadPayments])
+  }, [reloadUploads, reloadConfig, reloadBill, reloadEvents, reloadPayments, reloadCredits])
 
   const handleUpload = useCallback(
     async (file: File) => {
@@ -346,6 +358,15 @@ export function AdminPage() {
             <SectionHeader title="Audit Timeline" />
             <AuditTimeline events={events ?? []} />
           </section>
+        ) : null}
+
+        {propertyId ? (
+          <CreditSection
+            propertyId={propertyId}
+            auditBillId={activeBillId}
+            credits={credits ?? []}
+            onChange={refreshAll}
+          />
         ) : null}
 
         {showPayments && activeBill ? (

@@ -35,6 +35,11 @@ export function HistoryCard({ item, index = 0, onClick }: HistoryCardProps) {
               <Badge variant={billStatusVariant[item.status]} className="capitalize">
                 {formatBillStatus(item.status)}
               </Badge>
+              {item.creditApplied > 0 ? (
+                <Badge variant="accent" className="capitalize">
+                  Credit Applied
+                </Badge>
+              ) : null}
             </div>
 
             <p className="mt-1 text-sm text-muted-foreground">

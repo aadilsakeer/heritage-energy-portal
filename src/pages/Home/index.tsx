@@ -8,6 +8,7 @@ import {
   Sun,
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { AccountCreditCard } from '@/components/cards/AccountCreditCard'
 import { EmptyState } from '@/components/cards/EmptyState'
 import { ErrorState } from '@/components/cards/ErrorState'
 import { HeroCard } from '@/components/cards/HeroCard'
@@ -27,6 +28,7 @@ import {
   fetchLatestPublishedBill,
 } from '@/services/billService'
 import { fetchPayments } from '@/services/paymentService'
+import { fetchPropertyCreditBalance } from '@/services/creditService'
 import { computePaymentSummary } from '@/lib/payments'
 import { notify } from '@/lib/toast'
 import { downloadInvoice } from '@/utils/downloadInvoice'
@@ -54,12 +56,18 @@ export function HomePage() {
   const latestQuery = useAsync(
     async () => {
       if (!propertyId) return null
-      const bill = await fetchLatestPublishedBill(propertyId)
-      if (!bill) return null
+      const [bill, accountCredit] = await Promise.all([
+        fetchLatestPublishedBill(propertyId),
+        fetchPropertyCreditBalance(propertyId),
+      ])
+      if (!bill) {
+        return { bill: null, summary: null, accountCredit }
+      }
       const payments = await fetchPayments(bill.id)
       return {
         bill,
-        summary: computePaymentSummary(bill.tenantTotal ?? 0, payments),
+        summary: computePaymentSummary(bill, payments),
+        accountCredit,
       }
     },
     [propertyId],
@@ -103,6 +111,7 @@ export function HomePage() {
 
   const latestBill = latestQuery.data?.bill ?? null
   const latestSummary = latestQuery.data?.summary
+  const accountCredit = latestQuery.data?.accountCredit ?? 0
   const history = historyQuery.data ?? []
   const hasPublishedBill = Boolean(latestBill)
   const savings = hasPublishedBill
@@ -128,7 +137,12 @@ export function HomePage() {
         >
           {latestBill ? (
             <HeroCard
-              bill={toCurrentBill(latestBill, property?.label, latestSummary)}
+              bill={toCurrentBill(
+                latestBill,
+                property?.label,
+                latestSummary ?? undefined,
+                accountCredit,
+              )}
               onDownloadInvoice={() => {
                 if (!property) return
                 void downloadInvoice(latestBill, property)
@@ -142,13 +156,14 @@ export function HomePage() {
 
             />
           ) : (
-
             <EmptyState
               icon={Receipt}
               title="No bill has been published yet."
               description={`Publish a bill for ${property?.label ?? 'this property'} to see amounts and savings.`}
             />
           )}
+
+          <AccountCreditCard balance={accountCredit} />
 
           <section aria-label="Savings">
             <SectionHeader

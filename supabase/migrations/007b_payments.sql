@@ -1,7 +1,7 @@
--- Heritage Solar v1.2 — payments + extended bill status
-
-alter type public.bill_status add value if not exists 'partially_paid';
-alter type public.bill_status add value if not exists 'paid';
+-- Heritage Solar v1.2 — payments table + indexes (step 2 of 2)
+--
+-- Run AFTER 007a_enum.sql has committed successfully.
+-- Safe to re-run (idempotent).
 
 drop index if exists public.bills_one_published_per_month_idx;
 
@@ -46,3 +46,15 @@ create policy "Public update payments"
 create policy "Public delete payments"
   on public.payments for delete
   using (true);
+
+-- Verification
+select column_name, data_type
+from information_schema.columns
+where table_schema = 'public'
+  and table_name = 'payments'
+order by ordinal_position;
+
+select indexname
+from pg_indexes
+where schemaname = 'public'
+  and indexname in ('bills_one_active_per_month_idx', 'payments_bill_id_idx');

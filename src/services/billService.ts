@@ -11,6 +11,7 @@ import { fetchBillingConfiguration } from '@/services/propertyService'
 import type { Bill, BillStatus } from '@/types'
 import type { BillInsert, Json } from '@/types/database'
 import { PAYABLE_STATUSES } from '@/lib/payments'
+import { applyCreditsOnPublish } from '@/services/creditService'
 import {
   billingMonthFromDate,
   mapBill,
@@ -266,12 +267,23 @@ export async function publishBill(billId: string): Promise<Bill> {
     if (archiveError) throw new Error(getSupabaseErrorMessage(archiveError))
   }
 
+  let creditApplied = bill.creditApplied ?? 0
+  let amountPayable = bill.amountPayable ?? bill.tenantTotal ?? 0
+
+  if (!wasPublished) {
+    const applied = await applyCreditsOnPublish(bill)
+    creditApplied = applied.creditApplied
+    amountPayable = applied.amountPayable
+  }
+
   const { data, error } = await supabase
     .from('bills')
     .update({
       status: 'published' satisfies BillStatus,
       published_at: new Date().toISOString(),
       invoice_number: invoiceNumber,
+      credit_applied: creditApplied,
+      amount_payable: amountPayable,
     })
     .eq('id', billId)
     .select('*')
@@ -280,6 +292,8 @@ export async function publishBill(billId: string): Promise<Bill> {
   if (error) throw new Error(getSupabaseErrorMessage(error))
   await logBillEvent(billId, wasPublished ? 'republished' : 'published', {
     invoiceNumber,
+    creditApplied,
+    amountPayable,
   })
   return mapBill(data)
 }

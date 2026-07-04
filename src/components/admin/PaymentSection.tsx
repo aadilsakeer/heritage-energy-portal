@@ -53,8 +53,8 @@ export function PaymentSection({
   const [isSaving, setIsSaving] = useState(false)
 
   const summary = useMemo(
-    () => computePaymentSummary(bill.tenantTotal ?? 0, payments),
-    [bill.tenantTotal, payments],
+    () => computePaymentSummary(bill, payments),
+    [bill, payments],
   )
 
   const canManage = canRecordPayments(bill.status)
@@ -120,12 +120,28 @@ export function PaymentSection({
         description="Record partial or full payments against this bill"
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Card className="border-border/50 bg-card/80 shadow-soft">
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground">Bill Amount</p>
             <p className="mt-1 text-xl font-semibold">
               {formatCurrency(summary.billAmount)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-accent/20 bg-accent/5 shadow-soft">
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Credit Applied</p>
+            <p className="mt-1 text-xl font-semibold text-accent">
+              {formatCurrency(summary.creditApplied)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50 bg-card/80 shadow-soft">
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Final Amount</p>
+            <p className="mt-1 text-xl font-semibold">
+              {formatCurrency(summary.finalAmount)}
             </p>
           </CardContent>
         </Card>

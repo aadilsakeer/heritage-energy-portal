@@ -23,9 +23,8 @@ async function syncBillPaymentStatus(billId: string): Promise<Bill> {
   if (!bill) throw new Error('Bill not found')
 
   const payments = await fetchPayments(billId)
-  const billAmount = bill.tenantTotal ?? 0
-  const { totalPaid } = computePaymentSummary(billAmount, payments)
-  const nextStatus = derivePaymentStatus(bill.status, billAmount, totalPaid)
+  const { totalPaid } = computePaymentSummary(bill, payments)
+  const nextStatus = derivePaymentStatus(bill.status, bill, totalPaid)
 
   if (nextStatus !== bill.status) {
     const { error } = await supabase
@@ -35,6 +34,9 @@ async function syncBillPaymentStatus(billId: string): Promise<Bill> {
 
     if (error) throw new Error(getSupabaseErrorMessage(error))
   }
+
+  const { syncOverpaymentCredit } = await import('@/services/creditService')
+  await syncOverpaymentCredit(billId)
 
   const updated = await fetchBillById(billId)
   if (!updated) throw new Error('Bill not found')
@@ -157,6 +159,6 @@ export async function fetchPaymentSummaryForBill(billId: string) {
   return {
     bill,
     payments,
-    summary: computePaymentSummary(bill.tenantTotal ?? 0, payments),
+    summary: computePaymentSummary(bill, payments),
   }
 }

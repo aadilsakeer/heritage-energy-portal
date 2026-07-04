@@ -1,3 +1,5 @@
+import { buildCreditAnalytics } from '@/lib/credits'
+import { fetchCreditsForProperty } from '@/services/creditService'
 import type {
   AnalyticsData,
   AnalyticsSummary,
@@ -15,7 +17,7 @@ function toMetric(bill: Bill, value: number): MonthlyMetric {
   }
 }
 
-function buildSummary(bills: Bill[]): AnalyticsSummary {
+function buildSummary(bills: Bill[], creditStats: ReturnType<typeof buildCreditAnalytics>): AnalyticsSummary {
   const totals = bills.map((bill) => bill.tenantTotal ?? 0)
   const consumptions = bills.map((bill) => bill.consumption ?? 0)
   const savings = bills.map((bill) => bill.discountAmount ?? 0)
@@ -34,11 +36,18 @@ function buildSummary(bills: Bill[]): AnalyticsSummary {
     averageConsumption: average(consumptions),
     lifetimeSavings: savings.reduce((sum, value) => sum + value, 0),
     lifetimeSolarGeneration: generation.reduce((sum, value) => sum + value, 0),
+    outstandingCredits: creditStats.outstandingCredits,
+    creditsUsed: creditStats.creditsUsed,
+    totalCreditsGiven: creditStats.totalCreditsGiven,
   }
 }
 
 export async function fetchAnalytics(propertyId: string): Promise<AnalyticsData> {
-  const bills = await fetchPublishedBills(propertyId)
+  const [bills, credits] = await Promise.all([
+    fetchPublishedBills(propertyId),
+    fetchCreditsForProperty(propertyId),
+  ])
+  const creditStats = buildCreditAnalytics(credits)
 
   return {
     monthlyBills: bills.map((bill) => toMetric(bill, bill.tenantTotal ?? 0)),
@@ -49,7 +58,7 @@ export async function fetchAnalytics(propertyId: string): Promise<AnalyticsData>
       toMetric(bill, bill.generation ?? 0),
     ),
     consumption: bills.map((bill) => toMetric(bill, bill.consumption ?? 0)),
-    summary: buildSummary(bills),
+    summary: buildSummary(bills, creditStats),
   }
 }
 

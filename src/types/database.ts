@@ -25,6 +25,10 @@ export type BillEventType =
   | 'payment_added'
   | 'payment_updated'
   | 'payment_deleted'
+  | 'credit_created'
+  | 'credit_applied'
+  | 'credit_cancelled'
+  | 'manual_credit_added'
 
 export interface Database {
   public: {
@@ -105,6 +109,8 @@ export interface Database {
           discount_amount: number | null
           fixed_charge: number | null
           tenant_total: number | null
+          credit_applied: number
+          amount_payable: number | null
           security_deposit: number
           arrears: number
           rate: number | null
@@ -134,6 +140,8 @@ export interface Database {
           discount_amount?: number | null
           fixed_charge?: number | null
           tenant_total?: number | null
+          credit_applied?: number
+          amount_payable?: number | null
           security_deposit?: number
           arrears?: number
           rate?: number | null
@@ -163,6 +171,8 @@ export interface Database {
           discount_amount?: number | null
           fixed_charge?: number | null
           tenant_total?: number | null
+          credit_applied?: number
+          amount_payable?: number | null
           security_deposit?: number
           arrears?: number
           rate?: number | null
@@ -262,6 +272,57 @@ export interface Database {
           },
         ]
       }
+      customer_credits: {
+        Row: {
+          id: string
+          property_id: string
+          bill_id: string | null
+          amount: number
+          reason: string
+          remaining_amount: number
+          created_at: string
+          applied_at: string | null
+          status: string
+        }
+        Insert: {
+          id?: string
+          property_id: string
+          bill_id?: string | null
+          amount: number
+          reason: string
+          remaining_amount: number
+          created_at?: string
+          applied_at?: string | null
+          status?: string
+        }
+        Update: {
+          id?: string
+          property_id?: string
+          bill_id?: string | null
+          amount?: number
+          reason?: string
+          remaining_amount?: number
+          created_at?: string
+          applied_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'customer_credits_property_id_fkey'
+            columns: ['property_id']
+            isOneToOne: false
+            referencedRelation: 'properties'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'customer_credits_bill_id_fkey'
+            columns: ['bill_id']
+            isOneToOne: false
+            referencedRelation: 'bills'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -281,3 +342,9 @@ export type BillEventRow = Database['public']['Tables']['bill_events']['Row']
 export type PaymentRow = Database['public']['Tables']['payments']['Row']
 export type PaymentInsert = Database['public']['Tables']['payments']['Insert']
 export type PaymentUpdate = Database['public']['Tables']['payments']['Update']
+export type CustomerCreditRow =
+  Database['public']['Tables']['customer_credits']['Row']
+export type CustomerCreditInsert =
+  Database['public']['Tables']['customer_credits']['Insert']
+export type CustomerCreditUpdate =
+  Database['public']['Tables']['customer_credits']['Update']

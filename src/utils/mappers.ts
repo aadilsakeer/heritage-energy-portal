@@ -6,6 +6,7 @@ import type {
   BillEvent,
   BillingConfiguration,
   CurrentBill,
+  CustomerCredit,
   HistoryItem,
   Payment,
   Property,
@@ -15,6 +16,7 @@ import type {
   BillEventRow,
   BillRow,
   BillingConfigRow,
+  CustomerCreditRow,
   Json,
   PaymentRow,
   PropertyRow,
@@ -61,6 +63,9 @@ export function mapBill(row: BillRow): Bill {
       row.discount_amount === null ? null : Number(row.discount_amount),
     fixedCharge: row.fixed_charge === null ? null : Number(row.fixed_charge),
     tenantTotal: row.tenant_total === null ? null : Number(row.tenant_total),
+    creditApplied: Number(row.credit_applied ?? 0),
+    amountPayable:
+      row.amount_payable === null ? null : Number(row.amount_payable),
     securityDeposit: Number(row.security_deposit),
     arrears: Number(row.arrears),
     rate: row.rate === null ? null : Number(row.rate),
@@ -103,13 +108,27 @@ export function mapPayment(row: PaymentRow): Payment {
   }
 }
 
+export function mapCustomerCredit(row: CustomerCreditRow): CustomerCredit {
+  return {
+    id: row.id,
+    propertyId: row.property_id,
+    billId: row.bill_id,
+    amount: Number(row.amount),
+    reason: row.reason,
+    remainingAmount: Number(row.remaining_amount),
+    createdAt: row.created_at,
+    appliedAt: row.applied_at,
+    status: row.status as CustomerCredit['status'],
+  }
+}
+
 export function toCurrentBill(
   bill: Bill,
   propertyLabel?: string,
   paymentSummary?: PaymentSummary,
+  accountCredit = 0,
 ): CurrentBill {
-  const billAmount = bill.tenantTotal ?? 0
-  const summary = paymentSummary ?? computePaymentSummary(billAmount, [])
+  const summary = paymentSummary ?? computePaymentSummary(bill, [])
 
   return {
     id: bill.id,
@@ -123,6 +142,9 @@ export function toCurrentBill(
     totalPaid: summary.totalPaid,
     balance: summary.balance,
     paymentPercentage: summary.paymentPercentage,
+    accountCredit,
+    creditApplied: summary.creditApplied,
+    finalAmount: summary.finalAmount,
   }
 }
 
@@ -151,10 +173,11 @@ export function toHistoryItem(
     id: bill.id,
     month: formatMonthLabel(bill.billingMonth),
     status: bill.status,
-    amount: bill.tenantTotal ?? 0,
+    amount: bill.amountPayable ?? bill.tenantTotal ?? 0,
     currency: '₹',
     propertyId: bill.propertyId,
     propertyLabel,
+    creditApplied: bill.creditApplied ?? 0,
   }
 }
 
