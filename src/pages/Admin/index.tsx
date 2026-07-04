@@ -9,6 +9,7 @@ import {
 import { AuditTimeline } from '@/components/admin/AuditTimeline'
 import { BillReviewForm } from '@/components/admin/BillReviewForm'
 import { CreditSection } from '@/components/admin/CreditSection'
+import { BrandLogo } from '@/components/layout/BrandLogo'
 import { RecentUploadCard } from '@/components/admin/RecentUploadCard'
 import { UploadSuccessCard } from '@/components/admin/UploadSuccessCard'
 import { PaymentRequestsSection } from '@/components/admin/PaymentRequestsSection'
@@ -333,8 +334,8 @@ export function AdminPage() {
     <PageContainer>
       <div className="space-y-6 sm:space-y-8">
         <div>
-          <p className="text-sm font-medium text-primary">Admin</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+          <BrandLogo imageClassName="h-12 max-w-[10rem]" />
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
             Meter Uploads
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">

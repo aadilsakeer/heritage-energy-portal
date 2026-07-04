@@ -1,13 +1,40 @@
-import { APP_NAME } from '@/constants'
+import { APP_NAME, BRAND } from '@/constants'
 import type { Bill, Property } from '@/types'
 import { formatCurrency, formatDate, formatDateTime, formatMonthLabel } from '@/utils/format'
+
+async function loadBrandLogo(): Promise<{
+  dataUrl: string
+  width: number
+  height: number
+}> {
+  const response = await fetch(BRAND.logo)
+  if (!response.ok) throw new Error('Failed to load brand logo')
+
+  const blob = await response.blob()
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(new Error('Failed to read brand logo'))
+    reader.readAsDataURL(blob)
+  })
+
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const element = new Image()
+    element.onload = () => resolve(element)
+    element.onerror = () => reject(new Error('Failed to decode brand logo'))
+    element.src = dataUrl
+  })
+
+  return { dataUrl, width: image.width, height: image.height }
+}
 
 export async function generateInvoicePdf(
   bill: Bill,
   property: Property,
 ): Promise<void> {
-  const [{ jsPDF }] = await Promise.all([
+  const [{ jsPDF }, logo] = await Promise.all([
     import('jspdf'),
+    loadBrandLogo(),
     import('html2canvas'),
   ])
 
@@ -20,23 +47,15 @@ export async function generateInvoicePdf(
     bill.invoiceNumber ??
     `HS-${bill.billingMonth.slice(0, 7).replace('-', '')}-${bill.id.slice(0, 8).toUpperCase()}`
 
-  doc.setFillColor(15, 138, 95)
-  doc.roundedRect(margin, y - 8, 12, 12, 3, 3, 'F')
-  doc.setDrawColor(247, 251, 248)
-  doc.setLineWidth(1.2)
-  doc.circle(margin + 6, y - 4, 2.2, 'S')
-  doc.line(margin + 2.5, y + 1, margin + 9.5, y + 1)
+  const logoWidth = 52
+  const logoHeight = (logo.height / logo.width) * logoWidth
+  doc.addImage(logo.dataUrl, 'PNG', margin, y - 6, logoWidth, logoHeight)
 
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(20)
-  doc.setTextColor(16, 120, 90)
-  doc.text(APP_NAME, margin + 16, y)
-
+  doc.setFont('helvetica', 'normal')
   doc.setFontSize(11)
   doc.setTextColor(80)
-  doc.setFont('helvetica', 'normal')
-  y += 8
-  doc.text('Solar Billing Invoice', margin + 16, y)
+  y += logoHeight + 6
+  doc.text('Solar Billing Invoice', margin, y)
 
   y += 14
   doc.setFont('helvetica', 'bold')
