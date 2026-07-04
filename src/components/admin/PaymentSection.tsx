@@ -3,6 +3,7 @@ import { Pencil, Plus, Trash2, Wallet } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { EmptyState } from '@/components/cards/EmptyState'
 import { SectionHeader } from '@/components/layout/SectionHeader'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -51,6 +52,7 @@ export function PaymentSection({
   const [form, setForm] = useState<PaymentInput>(emptyForm())
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const summary = useMemo(
     () => computePaymentSummary(bill, payments),
@@ -105,6 +107,7 @@ export function PaymentSection({
       await deletePayment(paymentId)
       notify.success('Payment deleted')
       if (editingId === paymentId) resetForm()
+      setDeleteId(null)
       await onChange()
     } catch (err) {
       notify.error(err instanceof Error ? err.message : 'Delete failed')
@@ -326,7 +329,7 @@ export function PaymentSection({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => void handleDelete(payment.id)}
+                        onClick={() => setDeleteId(payment.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                         Delete
@@ -339,6 +342,19 @@ export function PaymentSection({
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(deleteId)}
+        title="Delete payment?"
+        description="This will rollback bill balance, status, and any overpayment credit. This action is recorded in the audit timeline."
+        confirmLabel="Delete Payment"
+        variant="destructive"
+        isLoading={isSaving}
+        onCancel={() => setDeleteId(null)}
+        onConfirm={() => {
+          if (deleteId) void handleDelete(deleteId)
+        }}
+      />
     </section>
   )
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
@@ -28,8 +29,11 @@ import {
 } from '@/services/billService'
 import { fetchPayments } from '@/services/paymentService'
 import { fetchCreditsForBill } from '@/services/creditService'
-import { computePaymentSummary, formatBillStatus } from '@/lib/payments'
+import { computePaymentSummary, formatBillStatus, canRequestPaymentVerification } from '@/lib/payments'
 import { PaymentHistory } from '@/components/invoice/PaymentHistory'
+import { PaymentRequestSheet } from '@/components/payment/PaymentRequestSheet'
+import { fetchPendingPaymentRequest } from '@/services/paymentRequestService'
+import { useNotifications } from '@/context/NotificationContext'
 import { billStatusVariant } from '@/lib/billStatus'
 import { Badge } from '@/components/ui/badge'
 import { downloadInvoice } from '@/utils/downloadInvoice'
@@ -39,6 +43,8 @@ import { toBillBreakdown } from '@/utils/mappers'
 
 export function BillPage() {
   const { billId } = useParams()
+  const [requestOpen, setRequestOpen] = useState(false)
+  const { refresh: refreshNotifications } = useNotifications()
   const {
     property,
     properties,
@@ -53,28 +59,32 @@ export function BillPage() {
       if (billId) {
         const bill = await fetchBillById(billId)
         if (!bill) return null
-        const [payments, credits] = await Promise.all([
+        const [payments, credits, pendingRequest] = await Promise.all([
           fetchPayments(bill.id),
           fetchCreditsForBill(bill.id),
+          fetchPendingPaymentRequest(bill.id),
         ])
         return {
           bill,
           payments,
           credits,
+          pendingRequest,
           summary: computePaymentSummary(bill, payments),
         }
       }
       if (!propertyId) return null
       const bill = await fetchLatestPublishedBill(propertyId)
       if (!bill) return null
-      const [payments, credits] = await Promise.all([
+      const [payments, credits, pendingRequest] = await Promise.all([
         fetchPayments(bill.id),
         fetchCreditsForBill(bill.id),
+        fetchPendingPaymentRequest(bill.id),
       ])
       return {
         bill,
         payments,
         credits,
+        pendingRequest,
         summary: computePaymentSummary(bill, payments),
       }
     },
@@ -110,6 +120,7 @@ export function BillPage() {
   const bill = billQuery.data?.bill ?? null
   const payments = billQuery.data?.payments ?? []
   const billCredits = billQuery.data?.credits ?? []
+  const pendingRequest = billQuery.data?.pendingRequest ?? null
   const paymentSummary = billQuery.data?.summary
   const billProperty =
     properties.find((item) => item.id === bill?.propertyId) ?? property
@@ -227,13 +238,29 @@ export function BillPage() {
                       ),
                     )
                 }}
-
               >
                 <Download className="h-4 w-4" />
                 Download Invoice
               </Button>
             ) : null}
           </header>
+
+          {canRequestPaymentVerification(bill.status) &&
+          bill.status !== 'paid' &&
+          paymentSummary &&
+          paymentSummary.balance > 0 ? (
+            <div className="sticky bottom-20 z-30 sm:static sm:bottom-auto">
+              <Button
+                type="button"
+                size="lg"
+                className="h-14 w-full rounded-2xl text-base shadow-soft sm:w-auto"
+                disabled={Boolean(pendingRequest)}
+                onClick={() => setRequestOpen(true)}
+              >
+                {pendingRequest ? 'Verification Pending' : 'I Have Paid'}
+              </Button>
+            </div>
+          ) : null}
 
           <section aria-label="Energy and charges">
             <SectionHeader title="Breakdown" />
@@ -279,6 +306,20 @@ export function BillPage() {
               summary={paymentSummary}
               payments={payments}
               credits={billCredits}
+              pendingRequest={pendingRequest}
+            />
+          ) : null}
+
+          {paymentSummary ? (
+            <PaymentRequestSheet
+              open={requestOpen}
+              bill={bill}
+              summary={paymentSummary}
+              onClose={() => setRequestOpen(false)}
+              onSubmitted={async () => {
+                await billQuery.reload()
+                await refreshNotifications()
+              }}
             />
           ) : null}
         </motion.div>

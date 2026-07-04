@@ -3,6 +3,7 @@ import { getBillAmountDue, roundMoney } from '@/lib/credits'
 
 export const PAYABLE_STATUSES: BillStatus[] = [
   'published',
+  'payment_pending_verification',
   'partially_paid',
   'paid',
 ]
@@ -56,21 +57,24 @@ export function derivePaymentStatus(
   currentStatus: BillStatus,
   bill: Bill,
   totalPaid: number,
+  hasPendingRequest = false,
 ): BillStatus {
   if (currentStatus === 'draft' || currentStatus === 'archived') {
     return currentStatus
   }
 
   const amountDue = getBillAmountDue(bill)
-  if (totalPaid <= 0) return 'published'
   if (totalPaid >= amountDue) return 'paid'
-  return 'partially_paid'
+  if (hasPendingRequest) return 'payment_pending_verification'
+  if (totalPaid > 0) return 'partially_paid'
+  return 'published'
 }
 
 export function formatBillStatus(status: BillStatus): string {
   const labels: Record<BillStatus, string> = {
     draft: 'Draft',
     published: 'Published',
+    payment_pending_verification: 'Pending Verification',
     partially_paid: 'Partially Paid',
     paid: 'Paid',
     archived: 'Archived',
@@ -86,5 +90,18 @@ export function formatPaymentMethod(method: string): string {
 }
 
 export function canRecordPayments(status: BillStatus): boolean {
-  return status === 'published' || status === 'partially_paid' || status === 'paid'
+  return (
+    status === 'published' ||
+    status === 'payment_pending_verification' ||
+    status === 'partially_paid' ||
+    status === 'paid'
+  )
+}
+
+export function canRequestPaymentVerification(status: BillStatus): boolean {
+  return (
+    status === 'published' ||
+    status === 'payment_pending_verification' ||
+    status === 'partially_paid'
+  )
 }

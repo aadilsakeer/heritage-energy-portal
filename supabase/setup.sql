@@ -14,6 +14,7 @@ begin
   create type public.bill_status as enum (
     'draft',
     'published',
+    'payment_pending_verification',
     'partially_paid',
     'paid',
     'archived'
@@ -128,6 +129,47 @@ create table if not exists public.customer_credits (
   status text not null default 'active' check (status in ('active', 'used', 'cancelled'))
 );
 
+create table if not exists public.payment_requests (
+  id uuid primary key default gen_random_uuid(),
+  bill_id uuid not null references public.bills (id) on delete cascade,
+  property_id uuid not null references public.properties (id) on delete cascade,
+  amount numeric(12, 2) not null check (amount > 0),
+  payment_method text not null default 'upi',
+  transaction_reference text,
+  proof_url text,
+  notes text,
+  requested_at timestamptz not null default now(),
+  approved_at timestamptz,
+  approved_by text,
+  rejection_reason text,
+  status text not null default 'pending' check (
+    status in ('pending', 'approved', 'rejected', 'cancelled')
+  )
+);
+
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  property_id uuid not null references public.properties (id) on delete cascade,
+  bill_id uuid references public.bills (id) on delete set null,
+  title text not null,
+  message text not null,
+  type text not null check (
+    type in (
+      'bill_published',
+      'payment_requested',
+      'payment_approved',
+      'payment_rejected',
+      'credit_created',
+      'credit_applied',
+      'bill_updated',
+      'payment_edited',
+      'payment_deleted'
+    )
+  ),
+  is_read boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
 -- =============================================================================
 -- Indexes
 -- =============================================================================
@@ -136,7 +178,12 @@ drop index if exists public.bills_one_published_per_month_idx;
 
 create unique index if not exists bills_one_active_per_month_idx
   on public.bills (property_id, billing_month)
-  where status in ('published', 'partially_paid', 'paid');
+  where status in (
+    'published',
+    'payment_pending_verification',
+    'partially_paid',
+    'paid'
+  );
 
 create index if not exists bills_property_status_month_idx
   on public.bills (property_id, status, billing_month desc);
@@ -155,6 +202,16 @@ create index if not exists customer_credits_property_status_idx
 
 create index if not exists customer_credits_bill_id_idx
   on public.customer_credits (bill_id);
+
+create unique index if not exists payment_requests_one_pending_per_bill_idx
+  on public.payment_requests (bill_id)
+  where status = 'pending';
+
+create index if not exists payment_requests_status_idx
+  on public.payment_requests (status, requested_at desc);
+
+create index if not exists notifications_property_read_idx
+  on public.notifications (property_id, is_read, created_at desc);
 
 -- =============================================================================
 -- updated_at trigger
@@ -187,6 +244,8 @@ alter table public.bills enable row level security;
 alter table public.bill_events enable row level security;
 alter table public.payments enable row level security;
 alter table public.customer_credits enable row level security;
+alter table public.payment_requests enable row level security;
+alter table public.notifications enable row level security;
 
 drop policy if exists "Public read properties" on public.properties;
 drop policy if exists "Public read billing configuration" on public.billing_configuration;
@@ -204,6 +263,14 @@ drop policy if exists "Public read customer credits" on public.customer_credits;
 drop policy if exists "Public insert customer credits" on public.customer_credits;
 drop policy if exists "Public update customer credits" on public.customer_credits;
 drop policy if exists "Public delete customer credits" on public.customer_credits;
+drop policy if exists "Public read payment requests" on public.payment_requests;
+drop policy if exists "Public insert payment requests" on public.payment_requests;
+drop policy if exists "Public update payment requests" on public.payment_requests;
+drop policy if exists "Public delete payment requests" on public.payment_requests;
+drop policy if exists "Public read notifications" on public.notifications;
+drop policy if exists "Public insert notifications" on public.notifications;
+drop policy if exists "Public update notifications" on public.notifications;
+drop policy if exists "Public delete notifications" on public.notifications;
 
 create policy "Public read properties"
   on public.properties for select
@@ -271,6 +338,24 @@ create policy "Public update customer credits"
 create policy "Public delete customer credits"
   on public.customer_credits for delete
   using (true);
+
+create policy "Public read payment requests"
+  on public.payment_requests for select using (true);
+create policy "Public insert payment requests"
+  on public.payment_requests for insert with check (true);
+create policy "Public update payment requests"
+  on public.payment_requests for update using (true) with check (true);
+create policy "Public delete payment requests"
+  on public.payment_requests for delete using (true);
+
+create policy "Public read notifications"
+  on public.notifications for select using (true);
+create policy "Public insert notifications"
+  on public.notifications for insert with check (true);
+create policy "Public update notifications"
+  on public.notifications for update using (true) with check (true);
+create policy "Public delete notifications"
+  on public.notifications for delete using (true);
 
 -- =============================================================================
 -- Storage: kseb-bills
@@ -394,4 +479,6 @@ select count(*) as remaining_bills from public.bills;
 select count(*) as remaining_bill_events from public.bill_events;
 select count(*) as remaining_payments from public.payments;
 select count(*) as remaining_customer_credits from public.customer_credits;
+select count(*) as remaining_payment_requests from public.payment_requests;
+select count(*) as remaining_notifications from public.notifications;
 select id, name from storage.buckets where id = 'kseb-bills';

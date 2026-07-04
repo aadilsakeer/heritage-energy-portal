@@ -1,9 +1,27 @@
 export type BillStatus =
   | 'draft'
   | 'published'
+  | 'payment_pending_verification'
   | 'partially_paid'
   | 'paid'
   | 'archived'
+
+export type PaymentRequestStatus =
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'cancelled'
+
+export type NotificationType =
+  | 'bill_published'
+  | 'payment_requested'
+  | 'payment_approved'
+  | 'payment_rejected'
+  | 'credit_created'
+  | 'credit_applied'
+  | 'bill_updated'
+  | 'payment_edited'
+  | 'payment_deleted'
 
 export type Json =
   | string
@@ -29,6 +47,11 @@ export type BillEventType =
   | 'credit_applied'
   | 'credit_cancelled'
   | 'manual_credit_added'
+  | 'payment_requested'
+  | 'payment_approved'
+  | 'payment_rejected'
+  | 'notification_sent'
+  | 'bill_updated'
 
 export interface Database {
   public: {
@@ -272,6 +295,117 @@ export interface Database {
           },
         ]
       }
+      payment_requests: {
+        Row: {
+          id: string
+          bill_id: string
+          property_id: string
+          amount: number
+          payment_method: string
+          transaction_reference: string | null
+          proof_url: string | null
+          notes: string | null
+          requested_at: string
+          approved_at: string | null
+          approved_by: string | null
+          rejection_reason: string | null
+          status: PaymentRequestStatus
+        }
+        Insert: {
+          id?: string
+          bill_id: string
+          property_id: string
+          amount: number
+          payment_method?: string
+          transaction_reference?: string | null
+          proof_url?: string | null
+          notes?: string | null
+          requested_at?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          rejection_reason?: string | null
+          status?: PaymentRequestStatus
+        }
+        Update: {
+          id?: string
+          bill_id?: string
+          property_id?: string
+          amount?: number
+          payment_method?: string
+          transaction_reference?: string | null
+          proof_url?: string | null
+          notes?: string | null
+          requested_at?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          rejection_reason?: string | null
+          status?: PaymentRequestStatus
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'payment_requests_bill_id_fkey'
+            columns: ['bill_id']
+            isOneToOne: false
+            referencedRelation: 'bills'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'payment_requests_property_id_fkey'
+            columns: ['property_id']
+            isOneToOne: false
+            referencedRelation: 'properties'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          id: string
+          property_id: string
+          bill_id: string | null
+          title: string
+          message: string
+          type: NotificationType
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          property_id: string
+          bill_id?: string | null
+          title: string
+          message: string
+          type: NotificationType
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          property_id?: string
+          bill_id?: string | null
+          title?: string
+          message?: string
+          type?: NotificationType
+          is_read?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'notifications_property_id_fkey'
+            columns: ['property_id']
+            isOneToOne: false
+            referencedRelation: 'properties'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'notifications_bill_id_fkey'
+            columns: ['bill_id']
+            isOneToOne: false
+            referencedRelation: 'bills'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       customer_credits: {
         Row: {
           id: string
@@ -348,3 +482,15 @@ export type CustomerCreditInsert =
   Database['public']['Tables']['customer_credits']['Insert']
 export type CustomerCreditUpdate =
   Database['public']['Tables']['customer_credits']['Update']
+export type PaymentRequestRow =
+  Database['public']['Tables']['payment_requests']['Row']
+export type PaymentRequestInsert =
+  Database['public']['Tables']['payment_requests']['Insert']
+export type PaymentRequestUpdate =
+  Database['public']['Tables']['payment_requests']['Update']
+export type NotificationRow =
+  Database['public']['Tables']['notifications']['Row']
+export type NotificationInsert =
+  Database['public']['Tables']['notifications']['Insert']
+export type NotificationUpdate =
+  Database['public']['Tables']['notifications']['Update']

@@ -5,6 +5,7 @@ import { LoadingSkeleton } from '@/components/cards/LoadingSkeleton'
 import { AppShell } from '@/components/layout/AppShell'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { PropertyProvider } from '@/context/PropertyContext'
+import { NotificationProvider } from '@/context/NotificationContext'
 import { ROUTES } from '@/constants'
 
 const HomePage = lazy(() => import('@/pages/Home'))
@@ -24,6 +25,7 @@ export default function App() {
     <ThemeProvider>
       <PropertyProvider>
         <BrowserRouter>
+        <NotificationProvider>
           <Routes>
             <Route element={<AppShell />}>
               <Route
@@ -84,6 +86,7 @@ export default function App() {
                 'rounded-2xl border border-border bg-card text-card-foreground shadow-soft',
             }}
           />
+        </NotificationProvider>
         </BrowserRouter>
       </PropertyProvider>
     </ThemeProvider>

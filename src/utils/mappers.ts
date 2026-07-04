@@ -8,7 +8,9 @@ import type {
   CurrentBill,
   CustomerCredit,
   HistoryItem,
+  Notification,
   Payment,
+  PaymentRequest,
   Property,
   UploadItem,
 } from '@/types'
@@ -18,6 +20,8 @@ import type {
   BillingConfigRow,
   CustomerCreditRow,
   Json,
+  NotificationRow,
+  PaymentRequestRow,
   PaymentRow,
   PropertyRow,
 } from '@/types/database'
@@ -119,6 +123,37 @@ export function mapCustomerCredit(row: CustomerCreditRow): CustomerCredit {
     createdAt: row.created_at,
     appliedAt: row.applied_at,
     status: row.status as CustomerCredit['status'],
+  }
+}
+
+export function mapPaymentRequest(row: PaymentRequestRow): PaymentRequest {
+  return {
+    id: row.id,
+    billId: row.bill_id,
+    propertyId: row.property_id,
+    amount: Number(row.amount),
+    paymentMethod: row.payment_method,
+    transactionReference: row.transaction_reference,
+    proofUrl: row.proof_url,
+    notes: row.notes,
+    requestedAt: row.requested_at,
+    approvedAt: row.approved_at,
+    approvedBy: row.approved_by,
+    rejectionReason: row.rejection_reason,
+    status: row.status,
+  }
+}
+
+export function mapNotification(row: NotificationRow): Notification {
+  return {
+    id: row.id,
+    propertyId: row.property_id,
+    billId: row.bill_id,
+    title: row.title,
+    message: row.message,
+    type: row.type,
+    isRead: row.is_read,
+    createdAt: row.created_at,
   }
 }
 

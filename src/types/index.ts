@@ -1,7 +1,19 @@
-import type { BillEventType, BillStatus, Json } from '@/types/database'
+import type {
+  BillEventType,
+  BillStatus,
+  Json,
+  NotificationType,
+  PaymentRequestStatus,
+} from '@/types/database'
 import type { ExtractionResult } from '@/lib/extractionSchema'
 
-export type { BillStatus, BillEventType, ExtractionResult }
+export type {
+  BillStatus,
+  BillEventType,
+  ExtractionResult,
+  NotificationType,
+  PaymentRequestStatus,
+}
 
 export interface Property {
   id: string
@@ -70,6 +82,33 @@ export interface Payment {
   createdAt: string
 }
 
+export interface PaymentRequest {
+  id: string
+  billId: string
+  propertyId: string
+  amount: number
+  paymentMethod: string
+  transactionReference: string | null
+  proofUrl: string | null
+  notes: string | null
+  requestedAt: string
+  approvedAt: string | null
+  approvedBy: string | null
+  rejectionReason: string | null
+  status: PaymentRequestStatus
+}
+
+export interface Notification {
+  id: string
+  propertyId: string
+  billId: string | null
+  title: string
+  message: string
+  type: NotificationType
+  isRead: boolean
+  createdAt: string
+}
+
 export interface CustomerCredit {
   id: string
   propertyId: string
@@ -97,6 +136,7 @@ export interface CurrentBill {
   accountCredit: number
   creditApplied: number
   finalAmount: number
+  hasPendingVerification?: boolean
 }
 
 export interface SavingsSummary {

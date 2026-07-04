@@ -17,6 +17,7 @@ import {
   mapBill,
   storagePath,
 } from '@/utils/mappers'
+import { formatMonthLabel } from '@/utils/format'
 
 export async function fetchLatestPublishedBill(
   propertyId: string,
@@ -295,7 +296,28 @@ export async function publishBill(billId: string): Promise<Bill> {
     creditApplied,
     amountPayable,
   })
-  return mapBill(data)
+
+  const published = mapBill(data)
+  const { createNotification } = await import('@/services/notificationService')
+  await createNotification({
+    propertyId: published.propertyId,
+    billId: published.id,
+    type: 'bill_published',
+    title: 'New bill published',
+    message: `Your ${formatMonthLabel(published.billingMonth)} bill of ₹${(amountPayable ?? published.tenantTotal ?? 0).toFixed(2)} is now available.`,
+  })
+
+  if (creditApplied > 0) {
+    await createNotification({
+      propertyId: published.propertyId,
+      billId: published.id,
+      type: 'credit_applied',
+      title: 'Credit applied to bill',
+      message: `₹${creditApplied.toFixed(2)} account credit was applied to your new bill.`,
+    })
+  }
+
+  return published
 }
 
 export async function archiveBill(billId: string): Promise<Bill> {

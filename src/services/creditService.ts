@@ -132,6 +132,16 @@ async function insertCredit(
     amount: credit.amount,
     reason: credit.reason,
   })
+
+  const { createNotification } = await import('@/services/notificationService')
+  await createNotification({
+    propertyId: credit.propertyId,
+    billId: auditBillId,
+    type: 'credit_created',
+    title: eventType === 'manual_credit_added' ? 'Manual credit added' : 'Credit created',
+    message: `₹${credit.amount.toFixed(2)} credit added: ${credit.reason}`,
+  })
+
   return credit
 }
 

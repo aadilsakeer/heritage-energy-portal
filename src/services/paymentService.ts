@@ -24,7 +24,17 @@ async function syncBillPaymentStatus(billId: string): Promise<Bill> {
 
   const payments = await fetchPayments(billId)
   const { totalPaid } = computePaymentSummary(bill, payments)
-  const nextStatus = derivePaymentStatus(bill.status, bill, totalPaid)
+
+  const { fetchPendingPaymentRequest } = await import(
+    '@/services/paymentRequestService'
+  )
+  const pendingRequest = await fetchPendingPaymentRequest(billId)
+  const nextStatus = derivePaymentStatus(
+    bill.status,
+    bill,
+    totalPaid,
+    Boolean(pendingRequest),
+  )
 
   if (nextStatus !== bill.status) {
     const { error } = await supabase
@@ -42,6 +52,8 @@ async function syncBillPaymentStatus(billId: string): Promise<Bill> {
   if (!updated) throw new Error('Bill not found')
   return updated
 }
+
+export { syncBillPaymentStatus }
 
 export async function fetchPayments(billId: string): Promise<Payment[]> {
   const { data, error } = await supabase
@@ -88,6 +100,15 @@ export async function createPayment(
     amount: payment.amount,
   })
 
+  const { createNotification } = await import('@/services/notificationService')
+  await createNotification({
+    propertyId: bill.propertyId,
+    billId,
+    type: 'payment_edited',
+    title: 'Payment recorded',
+    message: `Payment of ₹${payment.amount.toFixed(2)} added by admin.`,
+  })
+
   const updatedBill = await syncBillPaymentStatus(billId)
   return { payment, bill: updatedBill }
 }
@@ -122,6 +143,18 @@ export async function updatePayment(
     amount: payment.amount,
   })
 
+  const bill = await fetchBillById(existing.billId)
+  if (bill) {
+    const { createNotification } = await import('@/services/notificationService')
+    await createNotification({
+      propertyId: bill.propertyId,
+      billId: existing.billId,
+      type: 'payment_edited',
+      title: 'Payment updated',
+      message: `Payment updated to ₹${payment.amount.toFixed(2)} by admin.`,
+    })
+  }
+
   const updatedBill = await syncBillPaymentStatus(existing.billId)
   return { payment, bill: updatedBill }
 }
@@ -137,6 +170,18 @@ export async function deletePayment(paymentId: string): Promise<Bill> {
     paymentId: existing.id,
     amount: existing.amount,
   })
+
+  const bill = await fetchBillById(existing.billId)
+  if (bill) {
+    const { createNotification } = await import('@/services/notificationService')
+    await createNotification({
+      propertyId: bill.propertyId,
+      billId: existing.billId,
+      type: 'payment_deleted',
+      title: 'Payment deleted',
+      message: `Payment of ₹${existing.amount.toFixed(2)} was removed by admin.`,
+    })
+  }
 
   return syncBillPaymentStatus(existing.billId)
 }

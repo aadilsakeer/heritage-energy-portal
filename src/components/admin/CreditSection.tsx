@@ -3,6 +3,7 @@ import { Ban, Plus, Wallet } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { EmptyState } from '@/components/cards/EmptyState'
 import { SectionHeader } from '@/components/layout/SectionHeader'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -33,6 +34,7 @@ export function CreditSection({
   const [amount, setAmount] = useState('')
   const [reason, setReason] = useState('Manual Credit')
   const [isSaving, setIsSaving] = useState(false)
+  const [cancelId, setCancelId] = useState<string | null>(null)
 
   const activeBalance = getActiveCreditBalance(credits)
   const activeCredits = credits.filter((credit) => credit.status === 'active')
@@ -74,6 +76,7 @@ export function CreditSection({
     try {
       await cancelCredit(creditId, auditBillId)
       notify.success('Credit cancelled')
+      setCancelId(null)
       await onChange()
     } catch (err) {
       notify.error(err instanceof Error ? err.message : 'Cancel failed')
@@ -141,7 +144,7 @@ export function CreditSection({
           description="Overpayments and manual credits will appear here."
         />
       ) : (
-        <CreditList credits={activeCredits} onCancel={handleCancel} isSaving={isSaving} />
+        <CreditList credits={activeCredits} onCancel={(id) => setCancelId(id)} isSaving={isSaving} />
       )}
 
       <SectionHeader title="Applied Credits" />
@@ -155,8 +158,21 @@ export function CreditSection({
       {ledgerCredits.length === 0 ? (
         <EmptyState title="No ledger entries" description="All credit activity is tracked here." />
       ) : (
-        <CreditList credits={ledgerCredits} onCancel={handleCancel} isSaving={isSaving} showLedger />
+        <CreditList credits={ledgerCredits} onCancel={(id) => setCancelId(id)} isSaving={isSaving} showLedger />
       )}
+
+      <ConfirmDialog
+        open={Boolean(cancelId)}
+        title="Cancel credit?"
+        description="This credit will be marked cancelled and removed from the active balance. The ledger entry is preserved for audit."
+        confirmLabel="Cancel Credit"
+        variant="destructive"
+        isLoading={isSaving}
+        onCancel={() => setCancelId(null)}
+        onConfirm={() => {
+          if (cancelId) void handleCancel(cancelId)
+        }}
+      />
     </section>
   )
 }
@@ -168,7 +184,7 @@ function CreditList({
   showLedger,
 }: {
   credits: CustomerCredit[]
-  onCancel?: (creditId: string) => Promise<void>
+  onCancel?: (creditId: string) => void
   isSaving?: boolean
   showLedger?: boolean
 }) {
@@ -215,7 +231,7 @@ function CreditList({
                   variant="ghost"
                   size="sm"
                   disabled={isSaving}
-                  onClick={() => void onCancel(credit.id)}
+                  onClick={() => onCancel(credit.id)}
                 >
                   <Ban className="h-4 w-4" />
                   Cancel

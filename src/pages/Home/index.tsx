@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AccountCreditCard } from '@/components/cards/AccountCreditCard'
+import { AccountSummaryCard } from '@/components/cards/AccountSummaryCard'
 import { EmptyState } from '@/components/cards/EmptyState'
 import { ErrorState } from '@/components/cards/ErrorState'
 import { HeroCard } from '@/components/cards/HeroCard'
@@ -28,14 +29,16 @@ import {
   fetchLatestPublishedBill,
 } from '@/services/billService'
 import { fetchPayments } from '@/services/paymentService'
-import { fetchPropertyCreditBalance } from '@/services/creditService'
+import {
+  fetchCreditsForProperty,
+  fetchPropertyCreditBalance,
+} from '@/services/creditService'
+import { fetchPendingPaymentRequest } from '@/services/paymentRequestService'
 import { computePaymentSummary } from '@/lib/payments'
 import { notify } from '@/lib/toast'
 import { downloadInvoice } from '@/utils/downloadInvoice'
 import { formatCurrency } from '@/utils/format'
 import { toCurrentBill } from '@/utils/mappers'
-
-
 
 const quickStatIcons = {
   generation: Sun,
@@ -56,18 +59,25 @@ export function HomePage() {
   const latestQuery = useAsync(
     async () => {
       if (!propertyId) return null
-      const [bill, accountCredit] = await Promise.all([
+      const [bill, accountCredit, credits] = await Promise.all([
         fetchLatestPublishedBill(propertyId),
         fetchPropertyCreditBalance(propertyId),
+        fetchCreditsForProperty(propertyId),
       ])
       if (!bill) {
-        return { bill: null, summary: null, accountCredit }
+        return { bill: null, summary: null, accountCredit, credits, pendingRequest: null, payments: [] }
       }
-      const payments = await fetchPayments(bill.id)
+      const [payments, pendingRequest] = await Promise.all([
+        fetchPayments(bill.id),
+        fetchPendingPaymentRequest(bill.id),
+      ])
       return {
         bill,
         summary: computePaymentSummary(bill, payments),
         accountCredit,
+        credits,
+        pendingRequest,
+        payments,
       }
     },
     [propertyId],
@@ -112,6 +122,9 @@ export function HomePage() {
   const latestBill = latestQuery.data?.bill ?? null
   const latestSummary = latestQuery.data?.summary
   const accountCredit = latestQuery.data?.accountCredit ?? 0
+  const credits = latestQuery.data?.credits ?? []
+  const payments = latestQuery.data?.payments ?? []
+  const pendingRequest = latestQuery.data?.pendingRequest
   const history = historyQuery.data ?? []
   const hasPublishedBill = Boolean(latestBill)
   const savings = hasPublishedBill
@@ -135,26 +148,39 @@ export function HomePage() {
           transition={{ duration: 0.28, ease: easeOut }}
           className="space-y-6 sm:space-y-8"
         >
-          {latestBill ? (
-            <HeroCard
-              bill={toCurrentBill(
-                latestBill,
-                property?.label,
-                latestSummary ?? undefined,
-                accountCredit,
-              )}
-              onDownloadInvoice={() => {
-                if (!property) return
-                void downloadInvoice(latestBill, property)
-                  .then(() => notify.success('Invoice downloaded'))
-                  .catch((err: unknown) =>
-                    notify.error(
-                      err instanceof Error ? err.message : 'Download failed',
-                    ),
-                  )
-              }}
-
-            />
+          {latestBill && latestSummary ? (
+            <>
+              <HeroCard
+                bill={toCurrentBill(
+                  latestBill,
+                  property?.label,
+                  latestSummary,
+                  accountCredit,
+                )}
+                onDownloadInvoice={() => {
+                  if (!property) return
+                  void downloadInvoice(latestBill, property)
+                    .then(() => notify.success('Invoice downloaded'))
+                    .catch((err: unknown) =>
+                      notify.error(
+                        err instanceof Error ? err.message : 'Download failed',
+                      ),
+                    )
+                }}
+              />
+              <AccountSummaryCard
+                bill={toCurrentBill(
+                  latestBill,
+                  property?.label,
+                  latestSummary,
+                  accountCredit,
+                )}
+                summary={latestSummary}
+                payments={payments}
+                credits={credits}
+                hasPendingVerification={Boolean(pendingRequest)}
+              />
+            </>
           ) : (
             <EmptyState
               icon={Receipt}

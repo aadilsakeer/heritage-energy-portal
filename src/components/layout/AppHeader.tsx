@@ -5,6 +5,7 @@ import { APP_NAME, ROUTES } from '@/constants'
 import { Button } from '@/components/ui/button'
 import { InstallPrompt } from '@/components/layout/InstallPrompt'
 import { PropertySwitcher } from '@/components/layout/PropertySwitcher'
+import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 
 
 
@@ -36,6 +37,7 @@ export function AppHeader() {
           </Link>
 
           <div className="flex items-center gap-2">
+            <NotificationCenter />
             <InstallPrompt />
             <Button
               asChild

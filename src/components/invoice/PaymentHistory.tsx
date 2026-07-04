@@ -9,7 +9,7 @@ import {
   formatPaymentMethod,
   type PaymentSummary,
 } from '@/lib/payments'
-import type { CustomerCredit, Payment } from '@/types'
+import type { CustomerCredit, Payment, PaymentRequest } from '@/types'
 import { billStatusVariant } from '@/lib/billStatus'
 import type { BillStatus } from '@/types'
 import { formatCreditStatus } from '@/lib/credits'
@@ -20,6 +20,7 @@ interface PaymentHistoryProps {
   summary: PaymentSummary
   payments: Payment[]
   credits?: CustomerCredit[]
+  pendingRequest?: PaymentRequest | null
 }
 
 export function PaymentHistory({
@@ -27,10 +28,31 @@ export function PaymentHistory({
   summary,
   payments,
   credits = [],
+  pendingRequest,
 }: PaymentHistoryProps) {
   return (
     <section aria-label="Payment summary" className="space-y-4">
       <SectionHeader title="Payments" description="Bill amount, credits, and remaining balance" />
+
+      {pendingRequest ? (
+        <Card className="border-orange-500/20 bg-orange-500/10 shadow-soft">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="font-medium text-orange-800 dark:text-orange-200">
+                  Payment pending verification
+                </p>
+                <p className="mt-1 text-sm text-orange-700/80 dark:text-orange-300/80">
+                  {formatCurrency(pendingRequest.amount)} via{' '}
+                  {formatPaymentMethod(pendingRequest.paymentMethod)} submitted{' '}
+                  {formatDateTime(pendingRequest.requestedAt)}
+                </p>
+              </div>
+              <Badge variant="warning">Pending</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Card className="border-border/50 bg-card/80 shadow-soft backdrop-blur-xl">

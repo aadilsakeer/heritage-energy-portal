@@ -10,6 +10,7 @@ import { motion } from 'framer-motion'
 import { AuditTimeline } from '@/components/admin/AuditTimeline'
 import { BillReviewForm } from '@/components/admin/BillReviewForm'
 import { CreditSection } from '@/components/admin/CreditSection'
+import { PaymentRequestsSection } from '@/components/admin/PaymentRequestsSection'
 import { PaymentSection } from '@/components/admin/PaymentSection'
 import { toFormValues } from '@/lib/extractionSchema'
 
@@ -22,6 +23,8 @@ import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { useNotifications } from '@/context/NotificationContext'
 import { useProperty } from '@/context/PropertyContext'
 import { useAsync } from '@/hooks/useAsync'
 import { notify } from '@/lib/toast'
@@ -43,6 +46,7 @@ import { fetchBillEvents } from '@/services/eventService'
 import { fetchBillingConfiguration } from '@/services/propertyService'
 import { fetchPayments } from '@/services/paymentService'
 import { fetchCreditsForProperty } from '@/services/creditService'
+import { fetchPendingPaymentRequests } from '@/services/paymentRequestService'
 
 import { formatDateTime } from '@/utils/format'
 import { toUploadItem } from '@/utils/mappers'
@@ -63,6 +67,8 @@ export function AdminPage() {
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
+  const [publishValues, setPublishValues] = useState<ReviewFormValues | null>(null)
+  const { refresh: refreshNotifications } = useNotifications()
 
   const {
     data: uploadRows,
@@ -114,6 +120,11 @@ export function AdminPage() {
     Boolean(propertyId),
   )
 
+  const {
+    data: paymentRequests,
+    reload: reloadPaymentRequests,
+  } = useAsync(async () => fetchPendingPaymentRequests(), [])
+
   const refreshAll = useCallback(async () => {
     await Promise.all([
       reloadUploads(),
@@ -122,8 +133,19 @@ export function AdminPage() {
       reloadEvents(),
       reloadPayments(),
       reloadCredits(),
+      reloadPaymentRequests(),
+      refreshNotifications(),
     ])
-  }, [reloadUploads, reloadConfig, reloadBill, reloadEvents, reloadPayments, reloadCredits])
+  }, [
+    reloadUploads,
+    reloadConfig,
+    reloadBill,
+    reloadEvents,
+    reloadPayments,
+    reloadCredits,
+    reloadPaymentRequests,
+    refreshNotifications,
+  ])
 
   const handleUpload = useCallback(
     async (file: File) => {
@@ -204,12 +226,17 @@ export function AdminPage() {
   }
 
   const handlePublish = async (values: ReviewFormValues) => {
-    if (!activeBillId) return
+    setPublishValues(values)
+  }
+
+  const confirmPublish = async () => {
+    if (!activeBillId || !publishValues) return
     setIsPublishing(true)
     try {
-      await saveReviewedBill(activeBillId, values)
+      await saveReviewedBill(activeBillId, publishValues)
       await publishBill(activeBillId)
       notify.success('Bill published')
+      setPublishValues(null)
       await refreshAll()
     } catch (err) {
       notify.error(err instanceof Error ? err.message : 'Publish failed')
@@ -277,6 +304,11 @@ export function AdminPage() {
             {property?.label ?? 'a property'}.
           </p>
         </div>
+
+        <PaymentRequestsSection
+          requests={paymentRequests ?? []}
+          onChange={refreshAll}
+        />
 
         <UploadCard
           propertyLabel={property?.label}
@@ -436,6 +468,16 @@ export function AdminPage() {
           )}
         </section>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(publishValues)}
+        title="Publish bill?"
+        description="Tenants will be notified and any active credits will be applied to this bill. Previous active bills for the same month will be archived."
+        confirmLabel="Publish Bill"
+        isLoading={isPublishing}
+        onCancel={() => setPublishValues(null)}
+        onConfirm={() => void confirmPublish()}
+      />
     </PageContainer>
   )
 }
