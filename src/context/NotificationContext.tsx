@@ -3,17 +3,18 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   type ReactNode,
 } from 'react'
-import { useLocation } from 'react-router-dom'
-import { useProperty } from '@/context/PropertyContext'
+import { matchPath, useLocation } from 'react-router-dom'
+import { usePropertyId } from '@/context/PropertyContext'
 import { useAsync } from '@/hooks/useAsync'
 import { ROUTES } from '@/constants'
 import {
   fetchAllNotifications,
   fetchNotifications,
-  fetchUnreadCount,
 } from '@/services/notificationService'
 import type { Notification } from '@/types'
 
@@ -27,9 +28,10 @@ interface NotificationContextValue {
 const NotificationContext = createContext<NotificationContextValue | null>(null)
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const { propertyId } = useProperty()
+  const propertyId = usePropertyId()
   const location = useLocation()
-  const isAdmin = location.pathname.startsWith(ROUTES.admin)
+  const isAdmin = Boolean(matchPath({ path: ROUTES.admin }, location.pathname))
+  const reloadRef = useRef<() => Promise<void>>(async () => {})
 
   const query = useAsync(
     async () => {
@@ -38,26 +40,27 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         : propertyId
           ? await fetchNotifications(propertyId)
           : []
-      const unreadCount = isAdmin
-        ? await fetchUnreadCount()
-        : propertyId
-          ? await fetchUnreadCount(propertyId)
-          : 0
+      const unreadCount = notifications.filter((item) => !item.isRead).length
       return { notifications, unreadCount }
     },
     [propertyId, isAdmin],
     isAdmin || Boolean(propertyId),
+    isAdmin ? 'notifications:admin' : `notifications:${propertyId}`,
   )
 
+  useEffect(() => {
+    reloadRef.current = query.reload
+  }, [query.reload])
+
   const refresh = useCallback(async () => {
-    await query.reload()
-  }, [query])
+    await reloadRef.current()
+  }, [])
 
   const value = useMemo(
     () => ({
       notifications: query.data?.notifications ?? [],
       unreadCount: query.data?.unreadCount ?? 0,
-      isLoading: query.isLoading,
+      isLoading: query.isLoading && !query.data,
       refresh,
     }),
     [query.data, query.isLoading, refresh],

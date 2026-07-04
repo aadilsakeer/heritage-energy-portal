@@ -17,7 +17,7 @@ export const BottomNavigation = memo(function BottomNavigation() {
   return (
     <nav
       aria-label="Primary navigation"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/40 bg-background/90 backdrop-blur-2xl safe-area-bottom"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/40 bg-background/95 safe-area-bottom"
       style={{
         paddingLeft: 'env(safe-area-inset-left)',
         paddingRight: 'env(safe-area-inset-right)',

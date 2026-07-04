@@ -68,9 +68,11 @@ export function AnalyticsPage() {
     },
     [propertyId, refreshSignal],
     Boolean(propertyId),
+    propertyId ? `analytics:${propertyId}` : undefined,
   )
 
-  const isLoading = propertiesLoading || analyticsQuery.isLoading
+  const isLoading =
+    propertiesLoading || (analyticsQuery.isLoading && !analyticsQuery.isRefreshing)
   const error = propertiesError ?? analyticsQuery.error
   const data = analyticsQuery.data
 

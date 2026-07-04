@@ -40,9 +40,10 @@ export function HistoryPage() {
   const historyQuery = useAsync(async () => {
     if (filterPropertyId === 'all') return fetchBillHistory()
     return fetchBillHistory(filterPropertyId)
-  }, [filterPropertyId, refreshSignal])
+  }, [filterPropertyId, refreshSignal], true, `history:${filterPropertyId}`)
 
-  const isLoading = propertiesLoading || historyQuery.isLoading
+  const isLoading =
+    propertiesLoading || (historyQuery.isLoading && !historyQuery.isRefreshing)
   const error = propertiesError ?? historyQuery.error
 
   const items = useMemo(() => {

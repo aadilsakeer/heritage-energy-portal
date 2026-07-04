@@ -11,7 +11,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useParams } from 'react-router-dom'
+import { matchPath, useLocation, useParams } from 'react-router-dom'
 import { EmptyState } from '@/components/cards/EmptyState'
 import { ErrorState } from '@/components/cards/ErrorState'
 import { LoadingSkeleton } from '@/components/cards/LoadingSkeleton'
@@ -38,12 +38,18 @@ import { useNotifications } from '@/context/NotificationContext'
 import { billStatusVariant } from '@/lib/billStatus'
 import { Badge } from '@/components/ui/badge'
 import { downloadInvoice } from '@/utils/downloadInvoice'
+import { ROUTES } from '@/constants'
 
 import { formatCurrency, formatEnergy, formatMonthLabel } from '@/utils/format'
 import { toBillBreakdown } from '@/utils/mappers'
 
 export function BillPage() {
-  const { billId } = useParams()
+  const { billId: paramBillId } = useParams()
+  const location = useLocation()
+  const billId =
+    paramBillId ??
+    matchPath({ path: `${ROUTES.bill}/:billId`, end: true }, location.pathname)
+      ?.params.billId
   const [requestOpen, setRequestOpen] = useState(false)
   const { refresh: refreshNotifications } = useNotifications()
   const {
@@ -93,9 +99,15 @@ export function BillPage() {
     },
     [billId, propertyId, refreshSignal],
     Boolean(billId || propertyId),
+    billId
+      ? `bill:id:${billId}`
+      : propertyId
+        ? `bill:latest:${propertyId}`
+        : undefined,
   )
 
-  const isLoading = propertiesLoading || billQuery.isLoading
+  const isLoading =
+    propertiesLoading || (billQuery.isLoading && !billQuery.isRefreshing)
   const error = propertiesError ?? billQuery.error
 
   if (isLoading) {

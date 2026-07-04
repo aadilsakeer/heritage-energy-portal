@@ -33,7 +33,6 @@ export function StatCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay, ease: easeOut }}
-      whileHover={{ y: -2 }}
       className={className}
     >
       <Card className="surface-card h-full transition-shadow hover:shadow-md">

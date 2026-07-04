@@ -25,15 +25,10 @@ function isStandalone(): boolean {
 export function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null)
   const [dismissed, setDismissed] = useState(false)
-  const [showIosHint, setShowIosHint] = useState(false)
+  const showIosHint = !isStandalone() && isIos()
 
   useEffect(() => {
-    if (isStandalone()) return
-
-    if (isIos()) {
-      setShowIosHint(true)
-      return
-    }
+    if (isStandalone() || isIos()) return
 
     const handler = (event: Event) => {
       event.preventDefault()

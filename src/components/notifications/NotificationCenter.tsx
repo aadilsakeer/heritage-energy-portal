@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { Bell, CheckCheck } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNotifications } from '@/context/NotificationContext'
@@ -27,7 +27,7 @@ const typeColors: Record<string, string> = {
   payment_deleted: 'bg-red-500/15 text-red-700 dark:text-red-300',
 }
 
-export function NotificationCenter() {
+export const NotificationCenter = memo(function NotificationCenter() {
   const [open, setOpen] = useState(false)
   const { notifications, unreadCount, refresh } = useNotifications()
   const { propertyId } = useProperty()
@@ -81,9 +81,10 @@ export function NotificationCenter() {
               onClick={() => setOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, y: -8, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
               className="absolute right-0 top-full z-50 mt-2 w-[min(92vw,22rem)] overflow-hidden rounded-3xl border border-border/60 bg-card/95 shadow-soft backdrop-blur-xl"
             >
               <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
@@ -156,4 +157,4 @@ export function NotificationCenter() {
       </AnimatePresence>
     </div>
   )
-}
+})

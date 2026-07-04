@@ -1,18 +1,15 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Route, Routes, ScrollRestoration } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { LoadingSkeleton } from '@/components/cards/LoadingSkeleton'
 import { AppShell } from '@/components/layout/AppShell'
+import { PersistentTabLayout } from '@/components/layout/PersistentTabLayout'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { PropertyProvider } from '@/context/PropertyContext'
 import { RefreshProvider } from '@/context/RefreshContext'
 import { NotificationProvider } from '@/context/NotificationContext'
 import { ROUTES } from '@/constants'
 
-const HomePage = lazy(() => import('@/pages/Home'))
-const BillPage = lazy(() => import('@/pages/Bill'))
-const HistoryPage = lazy(() => import('@/pages/History'))
-const AnalyticsPage = lazy(() => import('@/pages/Analytics'))
 const AdminPage = lazy(() => import('@/pages/Admin'))
 
 function LazyPage({ children }: { children: ReactNode }) {
@@ -26,70 +23,31 @@ export default function App() {
     <ThemeProvider>
       <PropertyProvider>
         <BrowserRouter>
-        <RefreshProvider>
-        <NotificationProvider>
-          <Routes>
-            <Route element={<AppShell />}>
-              <Route
-                path={ROUTES.home}
-                element={
-                  <LazyPage>
-                    <HomePage />
-                  </LazyPage>
-                }
+          <RefreshProvider>
+            <NotificationProvider>
+              <ScrollRestoration />
+              <Routes>
+                <Route element={<AppShell />}>
+                  <Route
+                    path={ROUTES.admin}
+                    element={
+                      <LazyPage>
+                        <AdminPage />
+                      </LazyPage>
+                    }
+                  />
+                  <Route path="*" element={<PersistentTabLayout />} />
+                </Route>
+              </Routes>
+              <Toaster
+                position="top-center"
+                toastOptions={{
+                  className:
+                    'rounded-2xl border border-border bg-card text-card-foreground shadow-soft',
+                }}
               />
-              <Route
-                path={ROUTES.bill}
-                element={
-                  <LazyPage>
-                    <BillPage />
-                  </LazyPage>
-                }
-              />
-              <Route
-                path={`${ROUTES.bill}/:billId`}
-                element={
-                  <LazyPage>
-                    <BillPage />
-                  </LazyPage>
-                }
-              />
-              <Route
-                path={ROUTES.history}
-                element={
-                  <LazyPage>
-                    <HistoryPage />
-                  </LazyPage>
-                }
-              />
-              <Route
-                path={ROUTES.analytics}
-                element={
-                  <LazyPage>
-                    <AnalyticsPage />
-                  </LazyPage>
-                }
-              />
-              <Route
-                path={ROUTES.admin}
-                element={
-                  <LazyPage>
-                    <AdminPage />
-                  </LazyPage>
-                }
-              />
-              <Route path="*" element={<Navigate to={ROUTES.home} replace />} />
-            </Route>
-          </Routes>
-          <Toaster
-            position="top-center"
-            toastOptions={{
-              className:
-                'rounded-2xl border border-border bg-card text-card-foreground shadow-soft',
-            }}
-          />
-        </NotificationProvider>
-        </RefreshProvider>
+            </NotificationProvider>
+          </RefreshProvider>
         </BrowserRouter>
       </PropertyProvider>
     </ThemeProvider>

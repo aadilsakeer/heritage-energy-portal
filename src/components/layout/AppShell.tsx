@@ -1,10 +1,11 @@
-import { Outlet, useLocation } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { Outlet, useLocation, matchPath } from 'react-router-dom'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { BottomNavigation } from '@/components/layout/BottomNavigation'
+import { ROUTES } from '@/constants'
 
 export function AppShell() {
   const location = useLocation()
+  const onAdmin = Boolean(matchPath({ path: ROUTES.admin }, location.pathname))
 
   return (
     <div className="relative min-h-svh overflow-x-hidden bg-background">
@@ -14,19 +15,10 @@ export function AppShell() {
       />
 
       <AppHeader />
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={location.pathname}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          className="overflow-x-hidden"
-        >
-          <Outlet />
-        </motion.div>
-      </AnimatePresence>
-      <BottomNavigation />
+      <div className="overflow-x-hidden">
+        <Outlet />
+      </div>
+      {!onAdmin ? <BottomNavigation /> : null}
     </div>
   )
 }

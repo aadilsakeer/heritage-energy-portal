@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -30,21 +31,39 @@ interface PropertyProviderProps {
 
 export function PropertyProvider({ children }: PropertyProviderProps) {
   const [properties, setProperties] = useState<Property[]>([])
-  const [propertyId, setPropertyIdState] = useState<string | null>(null)
+  const [propertyId, setPropertyIdState] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem('heritage:propertyId')
+    } catch {
+      return null
+    }
+  })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const hasLoaded = useRef(false)
 
   const refreshProperties = useCallback(async () => {
-    setIsLoading(true)
+    if (!hasLoaded.current) {
+      setIsLoading(true)
+    }
     setError(null)
 
     try {
       const rows = await fetchProperties()
       setProperties(rows)
       setPropertyIdState((current) => {
-        if (current && rows.some((row) => row.id === current)) return current
-        return rows[0]?.id ?? null
+        const next =
+          current && rows.some((row) => row.id === current)
+            ? current
+            : (rows[0]?.id ?? null)
+        try {
+          if (next) sessionStorage.setItem('heritage:propertyId', next)
+        } catch {
+          // ignore storage errors
+        }
+        return next
       })
+      hasLoaded.current = true
     } catch (err) {
       setProperties([])
       setPropertyIdState(null)
@@ -61,9 +80,13 @@ export function PropertyProvider({ children }: PropertyProviderProps) {
     return () => window.clearTimeout(timer)
   }, [refreshProperties])
 
-
   const setPropertyId = useCallback((id: string) => {
     setPropertyIdState(id)
+    try {
+      sessionStorage.setItem('heritage:propertyId', id)
+    } catch {
+      // ignore storage errors
+    }
   }, [])
 
   const property = useMemo(
@@ -105,4 +128,12 @@ export function useProperty() {
   }
 
   return context
+}
+
+export function usePropertyId() {
+  return useProperty().propertyId
+}
+
+export function usePropertyLabel() {
+  return useProperty().property?.label
 }

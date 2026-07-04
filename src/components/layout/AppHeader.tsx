@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Moon, Settings, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Link } from 'react-router-dom'
@@ -7,20 +8,20 @@ import { Button } from '@/components/ui/button'
 import { PropertySwitcher } from '@/components/layout/PropertySwitcher'
 import { InstallPrompt } from '@/components/layout/InstallPrompt'
 import { NotificationCenter } from '@/components/notifications/NotificationCenter'
-import { useProperty } from '@/context/PropertyContext'
+import { usePropertyLabel } from '@/context/PropertyContext'
 
-export function AppHeader() {
+export const AppHeader = memo(function AppHeader() {
   const { resolvedTheme, setTheme } = useTheme()
-  const { property } = useProperty()
+  const propertyLabel = usePropertyLabel()
   const isDark = resolvedTheme === 'dark'
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/40 bg-background/90 backdrop-blur-2xl safe-area-top">
+    <header className="sticky top-0 z-40 border-b border-border/40 bg-background/95 safe-area-top">
       <div className="mx-auto w-full max-w-6xl safe-area-x py-3 sm:py-4 lg:px-8">
         <div className="flex items-center justify-between gap-3">
           <BrandLogo
             variant="full"
-            subtitle={property?.label}
+            subtitle={propertyLabel}
             className="min-w-0 flex-1"
           />
 
@@ -63,4 +64,4 @@ export function AppHeader() {
       </div>
     </header>
   )
-}
+})

@@ -85,6 +85,7 @@ export function HomePage() {
     },
     [propertyId, refreshSignal],
     Boolean(propertyId),
+    propertyId ? `home:latest:${propertyId}` : undefined,
   )
 
   const historyQuery = useAsync(
@@ -94,10 +95,13 @@ export function HomePage() {
     },
     [propertyId, refreshSignal],
     Boolean(propertyId),
+    propertyId ? `home:history:${propertyId}` : undefined,
   )
 
   const isLoading =
-    propertiesLoading || latestQuery.isLoading || historyQuery.isLoading
+    propertiesLoading ||
+    (latestQuery.isLoading && !latestQuery.isRefreshing) ||
+    (historyQuery.isLoading && !historyQuery.isRefreshing)
   const error = propertiesError ?? latestQuery.error ?? historyQuery.error
 
   const handleRetry = () => {
