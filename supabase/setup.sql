@@ -274,7 +274,9 @@ set
   fixed_charge = excluded.fixed_charge;
 
 -- =============================================================================
--- Production cleanup: remove demo/sample bills (safe to re-run)
+-- Production cleanup: remove demo/sample bills (see 006_production_cleanup.sql)
+-- Only deletes from public.bills; properties and billing_configuration are kept.
+-- bill_events rows cascade automatically (bills.id ON DELETE CASCADE).
 -- =============================================================================
 
 delete from public.bills
@@ -297,7 +299,8 @@ where id in (
 -- Verification
 -- =============================================================================
 
-select * from properties;
-select * from billing_configuration;
-select * from bills;
+select id, slug, name from public.properties order by slug;
+select property_id, rate, discount_percent, fixed_charge from public.billing_configuration order by property_id;
+select count(*) as remaining_bills from public.bills;
+select count(*) as remaining_bill_events from public.bill_events;
 select id, name from storage.buckets where id = 'kseb-bills';
