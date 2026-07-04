@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BarChart3 } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChartCard } from '@/components/cards/ChartCard'
@@ -5,8 +6,6 @@ import { EmptyState } from '@/components/cards/EmptyState'
 import { ErrorState } from '@/components/cards/ErrorState'
 import { LoadingSkeleton } from '@/components/cards/LoadingSkeleton'
 import { StatCard } from '@/components/cards/StatCard'
-import { MonthlyBarChart } from '@/components/charts/MonthlyBarChart'
-import { MonthlyLineChart } from '@/components/charts/MonthlyLineChart'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { CountUp } from '@/components/ui/CountUp'
@@ -15,6 +14,22 @@ import { useAsync } from '@/hooks/useAsync'
 import { easeOut } from '@/lib/motion'
 import { fetchAnalytics } from '@/services/analyticsService'
 import { formatCurrency, formatEnergy } from '@/utils/format'
+
+const MonthlyBarChart = lazy(() =>
+  import('@/components/charts/MonthlyBarChart').then((module) => ({
+    default: module.MonthlyBarChart,
+  })),
+)
+
+const MonthlyLineChart = lazy(() =>
+  import('@/components/charts/MonthlyLineChart').then((module) => ({
+    default: module.MonthlyLineChart,
+  })),
+)
+
+function ChartFallback() {
+  return <LoadingSkeleton variant="chart" />
+}
 
 export function AnalyticsPage() {
   const {
@@ -162,40 +177,48 @@ export function AnalyticsPage() {
                   description="Amount payable over published months"
                   delay={0.04}
                 >
-                  <MonthlyBarChart data={data.monthlyBills} unit="₹" />
+                  <Suspense fallback={<ChartFallback />}>
+                    <MonthlyBarChart data={data.monthlyBills} unit="₹" />
+                  </Suspense>
                 </ChartCard>
                 <ChartCard
                   title="Monthly Savings"
                   description="Discount applied from solar"
                   delay={0.08}
                 >
-                  <MonthlyBarChart
-                    data={data.monthlySavings}
-                    color="var(--color-chart-3)"
-                    unit="₹"
-                  />
+                  <Suspense fallback={<ChartFallback />}>
+                    <MonthlyBarChart
+                      data={data.monthlySavings}
+                      color="var(--color-chart-3)"
+                      unit="₹"
+                    />
+                  </Suspense>
                 </ChartCard>
                 <ChartCard
                   title="Monthly Consumption"
                   description="Calculated household usage"
                   delay={0.12}
                 >
-                  <MonthlyLineChart
-                    data={data.consumption}
-                    color="var(--color-accent)"
-                    unit="kWh"
-                  />
+                  <Suspense fallback={<ChartFallback />}>
+                    <MonthlyLineChart
+                      data={data.consumption}
+                      color="var(--color-accent)"
+                      unit="kWh"
+                    />
+                  </Suspense>
                 </ChartCard>
                 <ChartCard
                   title="Solar Generation"
                   description="Energy produced by your panels"
                   delay={0.16}
                 >
-                  <MonthlyLineChart
-                    data={data.solarGeneration}
-                    color="var(--color-primary)"
-                    unit="kWh"
-                  />
+                  <Suspense fallback={<ChartFallback />}>
+                    <MonthlyLineChart
+                      data={data.solarGeneration}
+                      color="var(--color-primary)"
+                      unit="kWh"
+                    />
+                  </Suspense>
                 </ChartCard>
               </div>
             </>

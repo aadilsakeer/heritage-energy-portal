@@ -35,8 +35,8 @@ import {
   uploadMeterReading,
 } from '@/services/billService'
 import { fetchBillEvents } from '@/services/eventService'
-import { extractBillFields } from '@/services/geminiService'
 import { fetchBillingConfiguration } from '@/services/propertyService'
+
 import type { BillStatus } from '@/types'
 
 import { formatDateTime } from '@/utils/format'
@@ -122,7 +122,9 @@ export function AdminPage() {
         setProgress(45)
         setProgressLabel('Running AI extraction…')
 
+        const { extractBillFields } = await import('@/services/geminiService')
         const extraction = await extractBillFields(file)
+
         setProgress(75)
         setProgressLabel('Saving draft…')
         await saveAiExtraction(draft.id, extraction)

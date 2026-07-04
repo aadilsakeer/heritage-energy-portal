@@ -26,10 +26,11 @@ import {
   fetchBillHistory,
   fetchLatestPublishedBill,
 } from '@/services/billService'
-import { generateInvoicePdf } from '@/services/invoiceService'
 import { notify } from '@/lib/toast'
+import { downloadInvoice } from '@/utils/downloadInvoice'
 import { formatCurrency } from '@/utils/format'
 import { toCurrentBill } from '@/utils/mappers'
+
 
 
 const quickStatIcons = {
@@ -118,9 +119,15 @@ export function HomePage() {
               bill={toCurrentBill(latestBill, property?.label)}
               onDownloadInvoice={() => {
                 if (!property) return
-                generateInvoicePdf(latestBill, property)
-                notify.success('Invoice downloaded')
+                void downloadInvoice(latestBill, property)
+                  .then(() => notify.success('Invoice downloaded'))
+                  .catch((err: unknown) =>
+                    notify.error(
+                      err instanceof Error ? err.message : 'Download failed',
+                    ),
+                  )
               }}
+
             />
           ) : (
 

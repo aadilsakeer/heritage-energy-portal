@@ -15,8 +15,9 @@ import { useAsync } from '@/hooks/useAsync'
 import { notify } from '@/lib/toast'
 import { easeOut } from '@/lib/motion'
 import { fetchBillById, fetchBillHistory } from '@/services/billService'
-import { generateInvoicePdf } from '@/services/invoiceService'
+import { downloadInvoice } from '@/utils/downloadInvoice'
 import { toHistoryItem } from '@/utils/mappers'
+
 
 export function HistoryPage() {
   const navigate = useNavigate()
@@ -57,8 +58,9 @@ export function HistoryPage() {
       const billProperty =
         properties.find((item) => item.id === bill.propertyId) ?? property
       if (!billProperty) throw new Error('Property not found')
-      generateInvoicePdf(bill, billProperty)
+      await downloadInvoice(bill, billProperty)
       notify.success('Invoice downloaded')
+
     } catch (err) {
       notify.error(err instanceof Error ? err.message : 'Download failed')
     }

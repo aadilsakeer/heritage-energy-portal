@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { LoadingSkeleton } from '@/components/cards/LoadingSkeleton'
@@ -13,6 +13,12 @@ const HistoryPage = lazy(() => import('@/pages/History'))
 const AnalyticsPage = lazy(() => import('@/pages/Analytics'))
 const AdminPage = lazy(() => import('@/pages/Admin'))
 
+function LazyPage({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={<LoadingSkeleton variant="page" />}>{children}</Suspense>
+  )
+}
+
 export default function App() {
   return (
     <ThemeProvider>
@@ -23,49 +29,49 @@ export default function App() {
               <Route
                 path={ROUTES.home}
                 element={
-                  <Suspense fallback={<LoadingSkeleton variant="page" />}>
+                  <LazyPage>
                     <HomePage />
-                  </Suspense>
+                  </LazyPage>
                 }
               />
               <Route
                 path={ROUTES.bill}
                 element={
-                  <Suspense fallback={<LoadingSkeleton variant="page" />}>
+                  <LazyPage>
                     <BillPage />
-                  </Suspense>
+                  </LazyPage>
                 }
               />
               <Route
                 path={`${ROUTES.bill}/:billId`}
                 element={
-                  <Suspense fallback={<LoadingSkeleton variant="page" />}>
+                  <LazyPage>
                     <BillPage />
-                  </Suspense>
+                  </LazyPage>
                 }
               />
               <Route
                 path={ROUTES.history}
                 element={
-                  <Suspense fallback={<LoadingSkeleton variant="page" />}>
+                  <LazyPage>
                     <HistoryPage />
-                  </Suspense>
+                  </LazyPage>
                 }
               />
               <Route
                 path={ROUTES.analytics}
                 element={
-                  <Suspense fallback={<LoadingSkeleton variant="page" />}>
+                  <LazyPage>
                     <AnalyticsPage />
-                  </Suspense>
+                  </LazyPage>
                 }
               />
               <Route
                 path={ROUTES.admin}
                 element={
-                  <Suspense fallback={<LoadingSkeleton variant="page" />}>
+                  <LazyPage>
                     <AdminPage />
-                  </Suspense>
+                  </LazyPage>
                 }
               />
               <Route path="*" element={<Navigate to={ROUTES.home} replace />} />

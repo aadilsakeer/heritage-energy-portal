@@ -26,7 +26,8 @@ import {
   fetchBillById,
   fetchLatestPublishedBill,
 } from '@/services/billService'
-import { generateInvoicePdf } from '@/services/invoiceService'
+import { downloadInvoice } from '@/utils/downloadInvoice'
+
 import { formatCurrency, formatEnergy, formatMonthLabel } from '@/utils/format'
 import { toBillBreakdown } from '@/utils/mappers'
 
@@ -179,9 +180,15 @@ export function BillPage() {
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  generateInvoicePdf(bill, billProperty)
-                  notify.success('Invoice downloaded')
+                  void downloadInvoice(bill, billProperty)
+                    .then(() => notify.success('Invoice downloaded'))
+                    .catch((err: unknown) =>
+                      notify.error(
+                        err instanceof Error ? err.message : 'Download failed',
+                      ),
+                    )
                 }}
+
               >
                 <Download className="h-4 w-4" />
                 Download Invoice

@@ -1,9 +1,16 @@
-import { jsPDF } from 'jspdf'
 import { APP_NAME } from '@/constants'
 import type { Bill, Property } from '@/types'
 import { formatCurrency, formatDate, formatMonthLabel } from '@/utils/format'
 
-export function generateInvoicePdf(bill: Bill, property: Property): void {
+export async function generateInvoicePdf(
+  bill: Bill,
+  property: Property,
+): Promise<void> {
+  const [{ jsPDF }] = await Promise.all([
+    import('jspdf'),
+    import('html2canvas'),
+  ])
+
   const doc = new jsPDF()
   const margin = 20
   let y = 24
