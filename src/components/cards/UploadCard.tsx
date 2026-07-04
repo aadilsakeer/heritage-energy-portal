@@ -1,32 +1,48 @@
 import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { FileUp, UploadCloud } from 'lucide-react'
+import { FileUp, LoaderCircle, UploadCloud } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
 interface UploadCardProps {
-  onFileSelect?: (file: File) => void
+  propertyLabel?: string
+  isUploading?: boolean
+  error?: string | null
+  onUpload: (file: File) => Promise<void> | void
 }
 
-export function UploadCard({ onFileSelect }: UploadCardProps) {
+export function UploadCard({
+  propertyLabel,
+  isUploading = false,
+  error,
+  onUpload,
+}: UploadCardProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+
+  const handleUpload = useCallback(
+    async (file: File) => {
+      setSelectedFile(file)
+      await onUpload(file)
+    },
+    [onUpload],
+  )
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       const file = acceptedFiles[0]
-      if (!file) return
-      setSelectedFile(file)
-      onFileSelect?.(file)
+      if (!file || isUploading) return
+      void handleUpload(file)
     },
-    [onFileSelect],
+    [handleUpload, isUploading],
   )
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     multiple: false,
     noClick: true,
+    disabled: isUploading,
     accept: {
       'application/pdf': ['.pdf'],
       'image/*': ['.png', '.jpg', '.jpeg'],
@@ -39,7 +55,7 @@ export function UploadCard({ onFileSelect }: UploadCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <Card>
+      <Card className="border-border/50 bg-card/80 shadow-soft backdrop-blur-xl">
         <CardContent className="p-5 sm:p-8">
           <div
             {...getRootProps()}
@@ -48,29 +64,51 @@ export function UploadCard({ onFileSelect }: UploadCardProps) {
               isDragActive
                 ? 'border-primary bg-primary/5'
                 : 'border-border bg-muted/30 hover:border-primary/40 hover:bg-muted/50',
+              isUploading && 'pointer-events-none opacity-70',
             )}
           >
-            <input {...getInputProps()} />
+            <input {...getInputProps()} aria-label="Meter reading file" />
             <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary">
-              <UploadCloud className="h-7 w-7" />
+              {isUploading ? (
+                <LoaderCircle className="h-7 w-7 animate-spin" aria-hidden="true" />
+              ) : (
+                <UploadCloud className="h-7 w-7" aria-hidden="true" />
+              )}
             </span>
             <h3 className="text-lg font-semibold tracking-tight">
-              {isDragActive ? 'Drop your file here' : 'Upload meter reading'}
+              {isDragActive
+                ? 'Drop your file here'
+                : isUploading
+                  ? 'Uploading…'
+                  : 'Upload meter reading'}
             </h3>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-              Drag and drop a PDF or image, or choose a file from your device.
+              {propertyLabel
+                ? `Upload a PDF for ${propertyLabel}. AI analysis comes in a later phase.`
+                : 'Select a property, then upload a PDF or image.'}
             </p>
 
             {selectedFile ? (
               <div className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-primary/10 px-3 py-2 text-sm text-primary">
-                <FileUp className="h-4 w-4" />
+                <FileUp className="h-4 w-4" aria-hidden="true" />
                 {selectedFile.name}
               </div>
             ) : null}
 
+            {error ? (
+              <p className="mt-3 text-sm text-destructive" role="alert">
+                {error}
+              </p>
+            ) : null}
+
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Button type="button" onClick={open}>
-                <UploadCloud className="h-4 w-4" />
+              <Button
+                type="button"
+                onClick={open}
+                disabled={isUploading || !propertyLabel}
+                aria-label="Upload meter reading file"
+              >
+                <UploadCloud className="h-4 w-4" aria-hidden="true" />
                 Upload File
               </Button>
               <Button type="button" variant="outline" disabled>

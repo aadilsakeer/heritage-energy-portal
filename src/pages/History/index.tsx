@@ -2,25 +2,72 @@ import { Receipt } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { EmptyState } from '@/components/cards/EmptyState'
+import { ErrorState } from '@/components/cards/ErrorState'
 import { HistoryCard } from '@/components/cards/HistoryCard'
+import { LoadingSkeleton } from '@/components/cards/LoadingSkeleton'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { ROUTES } from '@/constants'
 import { useProperty } from '@/context/PropertyContext'
+import { useAsync } from '@/hooks/useAsync'
 import { easeOut } from '@/lib/motion'
+import { fetchBillHistory } from '@/services/billService'
+import { toHistoryItem } from '@/utils/mappers'
 
 export function HistoryPage() {
   const navigate = useNavigate()
-  const { propertyId, property, data } = useProperty()
-  const items = data.history
+  const {
+    property,
+    propertyId,
+    isLoading: propertiesLoading,
+    error: propertiesError,
+    refreshProperties,
+  } = useProperty()
+
+  const historyQuery = useAsync(
+    async () => {
+      if (!propertyId) return []
+      return fetchBillHistory(propertyId)
+    },
+    [propertyId],
+    Boolean(propertyId),
+  )
+
+  const isLoading = propertiesLoading || historyQuery.isLoading
+  const error = propertiesError ?? historyQuery.error
+  const items = (historyQuery.data ?? []).map(toHistoryItem)
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <LoadingSkeleton variant="list" count={4} />
+      </PageContainer>
+    )
+  }
+
+  if (error) {
+    return (
+      <PageContainer>
+        <ErrorState
+          message={error}
+          onRetry={() => {
+            void refreshProperties()
+            void historyQuery.reload()
+          }}
+        />
+      </PageContainer>
+    )
+  }
 
   return (
     <PageContainer>
       <AnimatePresence mode="wait">
         <motion.div
-          key={propertyId}
-          id={`property-panel-${propertyId}`}
+          key={propertyId ?? 'none'}
+          id={propertyId ? `property-panel-${propertyId}` : undefined}
           role="tabpanel"
-          aria-labelledby={`property-tab-${propertyId}`}
+          aria-labelledby={
+            propertyId ? `property-tab-${propertyId}` : undefined
+          }
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
@@ -33,7 +80,7 @@ export function HistoryPage() {
               Billing Timeline
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Past invoices for {property.label}
+              Past invoices for {property?.label ?? 'property'}
             </p>
           </header>
 

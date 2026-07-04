@@ -1,10 +1,19 @@
 import { ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
-import type { HistoryItem } from '@/types'
+import type { BillStatus, HistoryItem } from '@/types'
 import { easeOut } from '@/lib/motion'
 import { formatCurrency } from '@/utils/format'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+
+const statusVariant: Record<
+  BillStatus,
+  'success' | 'warning' | 'outline'
+> = {
+  published: 'success',
+  draft: 'warning',
+  archived: 'outline',
+}
 
 interface HistoryCardProps {
   item: HistoryItem
@@ -30,10 +39,11 @@ export function HistoryCard({ item, index = 0, onClick }: HistoryCardProps) {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="truncate font-medium text-foreground">{item.month}</p>
-              <Badge variant="success" className="capitalize">
+              <Badge variant={statusVariant[item.status]} className="capitalize">
                 {item.status}
               </Badge>
             </div>
+
             <p className="mt-1 text-sm text-muted-foreground">Monthly invoice</p>
           </div>
 

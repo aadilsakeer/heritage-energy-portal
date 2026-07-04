@@ -1,18 +1,25 @@
 import type { KeyboardEvent } from 'react'
 import { Building2, Home } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { PROPERTIES } from '@/constants'
 import { useProperty } from '@/context/PropertyContext'
-import type { PropertyId } from '@/types'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
-const icons = {
+const icons: Record<string, typeof Home> = {
   home: Home,
   heritage: Building2,
-} as const
+}
 
 export function PropertySwitcher() {
-  const { propertyId, setPropertyId } = useProperty()
+  const { properties, propertyId, setPropertyId, isLoading } = useProperty()
+
+  if (isLoading) {
+    return <Skeleton className="h-12 w-full rounded-2xl" aria-label="Loading properties" />
+  }
+
+  if (properties.length === 0) {
+    return null
+  }
 
   return (
     <div
@@ -20,9 +27,9 @@ export function PropertySwitcher() {
       aria-label="Select property"
       className="relative grid grid-cols-2 gap-1 rounded-2xl border border-border/60 bg-muted/60 p-1 shadow-soft backdrop-blur-xl"
     >
-      {PROPERTIES.map((property) => {
+      {properties.map((property) => {
         const isActive = property.id === propertyId
-        const Icon = icons[property.id]
+        const Icon = icons[property.slug] ?? Building2
 
         return (
           <button
@@ -35,7 +42,7 @@ export function PropertySwitcher() {
             tabIndex={isActive ? 0 : -1}
             onClick={() => setPropertyId(property.id)}
             onKeyDown={(event) =>
-              handleKeyDown(event, property.id, setPropertyId)
+              handleKeyDown(event, property.id, properties.map((item) => item.id), setPropertyId)
             }
             className={cn(
               'relative z-10 flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
@@ -67,23 +74,24 @@ export function PropertySwitcher() {
 
 function handleKeyDown(
   event: KeyboardEvent<HTMLButtonElement>,
-  currentId: PropertyId,
-  setPropertyId: (id: PropertyId) => void,
+  currentId: string,
+  ids: string[],
+  setPropertyId: (id: string) => void,
 ) {
-  const index = PROPERTIES.findIndex((item) => item.id === currentId)
+  const index = ids.indexOf(currentId)
   if (index < 0) return
 
   if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
     event.preventDefault()
-    const next = PROPERTIES[(index + 1) % PROPERTIES.length]
-    setPropertyId(next.id)
-    document.getElementById(`property-tab-${next.id}`)?.focus()
+    const next = ids[(index + 1) % ids.length]
+    setPropertyId(next)
+    document.getElementById(`property-tab-${next}`)?.focus()
   }
 
   if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
     event.preventDefault()
-    const prev = PROPERTIES[(index - 1 + PROPERTIES.length) % PROPERTIES.length]
-    setPropertyId(prev.id)
-    document.getElementById(`property-tab-${prev.id}`)?.focus()
+    const prev = ids[(index - 1 + ids.length) % ids.length]
+    setPropertyId(prev)
+    document.getElementById(`property-tab-${prev}`)?.focus()
   }
 }

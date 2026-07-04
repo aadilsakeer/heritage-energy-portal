@@ -9,16 +9,77 @@ import {
   Zap,
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { EmptyState } from '@/components/cards/EmptyState'
+import { ErrorState } from '@/components/cards/ErrorState'
+import { LoadingSkeleton } from '@/components/cards/LoadingSkeleton'
 import { BreakdownCard } from '@/components/invoice/BreakdownCard'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { useProperty } from '@/context/PropertyContext'
+import { useAsync } from '@/hooks/useAsync'
 import { easeOut } from '@/lib/motion'
-import { formatCurrency, formatEnergy } from '@/utils/format'
+import { fetchLatestPublishedBill } from '@/services/billService'
+import { formatCurrency, formatEnergy, formatMonthLabel } from '@/utils/format'
+import { toBillBreakdown } from '@/utils/mappers'
 
 export function BillPage() {
-  const { propertyId, property, data } = useProperty()
-  const { breakdown, bill } = data
+  const {
+    property,
+    propertyId,
+    isLoading: propertiesLoading,
+    error: propertiesError,
+    refreshProperties,
+  } = useProperty()
+
+  const billQuery = useAsync(
+    async () => {
+      if (!propertyId) return null
+      return fetchLatestPublishedBill(propertyId)
+    },
+    [propertyId],
+    Boolean(propertyId),
+  )
+
+  const isLoading = propertiesLoading || billQuery.isLoading
+  const error = propertiesError ?? billQuery.error
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <LoadingSkeleton variant="page" />
+      </PageContainer>
+    )
+  }
+
+  if (error) {
+    return (
+      <PageContainer>
+        <ErrorState
+          message={error}
+          onRetry={() => {
+            void refreshProperties()
+            void billQuery.reload()
+          }}
+        />
+      </PageContainer>
+    )
+  }
+
+  const bill = billQuery.data
+
+  if (!bill) {
+    return (
+      <PageContainer>
+        <EmptyState
+          icon={Receipt}
+          title="No bill available"
+          description={`Publish a bill for ${property?.label ?? 'this property'} to see the breakdown.`}
+        />
+      </PageContainer>
+    )
+  }
+
+  const breakdown = toBillBreakdown(bill)
 
   const cards = [
     {
@@ -47,21 +108,21 @@ export function BillPage() {
       value: formatEnergy(breakdown.consumption, breakdown.unit),
       icon: PlugZap,
       accent: 'accent' as const,
-      description: 'Net usage',
+      description: 'Generation − (Export − Import)',
     },
     {
       label: 'Energy Charge',
       value: formatCurrency(breakdown.energyCharge, breakdown.currency),
       icon: Zap,
       accent: 'muted' as const,
-      description: 'Utility energy cost',
+      description: 'Consumption × Rate',
     },
     {
       label: 'Discount',
       value: `−${formatCurrency(breakdown.discount, breakdown.currency)}`,
       icon: BadgePercent,
       accent: 'primary' as const,
-      description: 'Solar credit',
+      description: 'Energy × Discount %',
     },
     {
       label: 'Fixed Charge',
@@ -75,7 +136,7 @@ export function BillPage() {
       value: formatCurrency(breakdown.total, breakdown.currency),
       icon: Receipt,
       accent: 'total' as const,
-      description: 'Amount payable',
+      description: 'Energy − Discount + Fixed Charge',
     },
   ]
 
@@ -83,10 +144,12 @@ export function BillPage() {
     <PageContainer>
       <AnimatePresence mode="wait">
         <motion.div
-          key={propertyId}
-          id={`property-panel-${propertyId}`}
+          key={propertyId ?? bill.id}
+          id={propertyId ? `property-panel-${propertyId}` : undefined}
           role="tabpanel"
-          aria-labelledby={`property-tab-${propertyId}`}
+          aria-labelledby={
+            propertyId ? `property-tab-${propertyId}` : undefined
+          }
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
@@ -96,10 +159,10 @@ export function BillPage() {
           <header>
             <p className="text-sm font-medium text-primary">Bill Breakdown</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-              {bill.month}
+              {formatMonthLabel(bill.billingMonth)}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Transparent charges for {property.label}
+              Latest published bill for {property?.label ?? 'property'}
             </p>
           </header>
 

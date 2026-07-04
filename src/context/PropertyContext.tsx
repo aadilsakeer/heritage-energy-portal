@@ -2,18 +2,22 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
-import { PROPERTIES, PROPERTY_DATA } from '@/constants'
-import type { Property, PropertyData, PropertyId } from '@/types'
+import { fetchProperties } from '@/services/propertyService'
+import type { Property } from '@/types'
 
 interface PropertyContextValue {
-  propertyId: PropertyId
-  property: Property
-  data: PropertyData
-  setPropertyId: (id: PropertyId) => void
+  properties: Property[]
+  property: Property | null
+  propertyId: string | null
+  setPropertyId: (id: string) => void
+  isLoading: boolean
+  error: string | null
+  refreshProperties: () => Promise<void>
 }
 
 const PropertyContext = createContext<PropertyContextValue | null>(null)
@@ -23,23 +27,64 @@ interface PropertyProviderProps {
 }
 
 export function PropertyProvider({ children }: PropertyProviderProps) {
-  const [propertyId, setPropertyIdState] = useState<PropertyId>('home')
+  const [properties, setProperties] = useState<Property[]>([])
+  const [propertyId, setPropertyIdState] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const setPropertyId = useCallback((id: PropertyId) => {
+  const refreshProperties = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const rows = await fetchProperties()
+      setProperties(rows)
+      setPropertyIdState((current) => {
+        if (current && rows.some((row) => row.id === current)) return current
+        return rows[0]?.id ?? null
+      })
+    } catch (err) {
+      setProperties([])
+      setPropertyIdState(null)
+      setError(err instanceof Error ? err.message : 'Failed to load properties')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void refreshProperties()
+  }, [refreshProperties])
+
+  const setPropertyId = useCallback((id: string) => {
     setPropertyIdState(id)
   }, [])
 
-  const value = useMemo<PropertyContextValue>(() => {
-    const property =
-      PROPERTIES.find((item) => item.id === propertyId) ?? PROPERTIES[0]
+  const property = useMemo(
+    () => properties.find((item) => item.id === propertyId) ?? null,
+    [properties, propertyId],
+  )
 
-    return {
-      propertyId,
+  const value = useMemo<PropertyContextValue>(
+    () => ({
+      properties,
       property,
-      data: PROPERTY_DATA[propertyId],
+      propertyId,
       setPropertyId,
-    }
-  }, [propertyId, setPropertyId])
+      isLoading,
+      error,
+      refreshProperties,
+    }),
+    [
+      properties,
+      property,
+      propertyId,
+      setPropertyId,
+      isLoading,
+      error,
+      refreshProperties,
+    ],
+  )
 
   return (
     <PropertyContext.Provider value={value}>{children}</PropertyContext.Provider>

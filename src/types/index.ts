@@ -1,16 +1,50 @@
-export type BillStatus = 'published' | 'draft' | 'pending'
+import type { BillStatus } from '@/types/database'
 
-export type UploadStatus = 'processed' | 'pending' | 'failed'
-
-export type PropertyId = 'home' | 'heritage'
+export type { BillStatus }
 
 export interface Property {
-  id: PropertyId
+  id: string
+  slug: string
   label: string
   shortLabel: string
 }
 
+export interface BillingConfiguration {
+  id: string
+  propertyId: string
+  rate: number
+  discountPercent: number
+  fixedCharge: number
+  effectiveFrom: string
+}
+
+export interface Bill {
+  id: string
+  propertyId: string
+  billingMonth: string
+  status: BillStatus
+  generation: number | null
+  exportKwh: number | null
+  importKwh: number | null
+  consumption: number | null
+  energyCharge: number | null
+  discountAmount: number | null
+  fixedCharge: number | null
+  tenantTotal: number | null
+  securityDeposit: number
+  arrears: number
+  rate: number | null
+  discountPercent: number | null
+  pdfPath: string | null
+  pdfFileName: string | null
+  dueDate: string | null
+  publishedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface CurrentBill {
+  id: string
   month: string
   amountDue: number
   dueDate: string
@@ -41,6 +75,8 @@ export interface BillBreakdown {
   discount: number
   fixedCharge: number
   total: number
+  securityDeposit: number
+  arrears: number
   currency: string
   unit: string
 }
@@ -62,17 +98,19 @@ export interface UploadItem {
   id: string
   fileName: string
   uploadedAt: string
-  status: UploadStatus
+  status: BillStatus
+  propertyId: string
 }
 
-export interface PropertyData {
-  bill: CurrentBill
-  savings: SavingsSummary
-  quickStats: QuickStat[]
-  breakdown: BillBreakdown
-  history: HistoryItem[]
+export interface AnalyticsData {
   monthlyBills: MonthlyMetric[]
-  monthlyConsumption: MonthlyMetric[]
   monthlySavings: MonthlyMetric[]
   solarGeneration: MonthlyMetric[]
+  consumption: MonthlyMetric[]
+}
+
+export interface AsyncState<T> {
+  data: T
+  isLoading: boolean
+  error: string | null
 }
