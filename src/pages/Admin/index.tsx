@@ -1,6 +1,15 @@
-import { useCallback, useState } from 'react'
-import { FileText } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import {
+  Archive,
+  Copy,
+  FileText,
+  Trash2,
+} from 'lucide-react'
 import { motion } from 'framer-motion'
+import { AuditTimeline } from '@/components/admin/AuditTimeline'
+import { BillReviewForm } from '@/components/admin/BillReviewForm'
+import { toFormValues } from '@/lib/extractionSchema'
+
 import { EmptyState } from '@/components/cards/EmptyState'
 import { ErrorState } from '@/components/cards/ErrorState'
 import { LoadingSkeleton } from '@/components/cards/LoadingSkeleton'
@@ -8,14 +17,28 @@ import { UploadCard } from '@/components/cards/UploadCard'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useProperty } from '@/context/PropertyContext'
 import { useAsync } from '@/hooks/useAsync'
+import { notify } from '@/lib/toast'
+import type { ReviewFormValues } from '@/lib/extractionSchema'
 import {
+  archiveBill,
+  deleteDraftBill,
+  duplicateBill,
+  fetchBillById,
   fetchRecentUploads,
+  publishBill,
+  saveAiExtraction,
+  saveReviewedBill,
   uploadMeterReading,
 } from '@/services/billService'
+import { fetchBillEvents } from '@/services/eventService'
+import { extractBillFields } from '@/services/geminiService'
+import { fetchBillingConfiguration } from '@/services/propertyService'
 import type { BillStatus } from '@/types'
+
 import { formatDateTime } from '@/utils/format'
 import { toUploadItem } from '@/utils/mappers'
 
@@ -34,8 +57,13 @@ export function AdminPage() {
     refreshProperties,
   } = useProperty()
 
-  const [isUploading, setIsUploading] = useState(false)
+  const [activeBillId, setActiveBillId] = useState<string | null>(null)
+  const [isBusy, setIsBusy] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [progressLabel, setProgressLabel] = useState('')
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isPublishing, setIsPublishing] = useState(false)
 
   const {
     data: uploadRows,
@@ -43,6 +71,38 @@ export function AdminPage() {
     error: uploadsError,
     reload: reloadUploads,
   } = useAsync(async () => fetchRecentUploads(), [])
+  const {
+    data: activeBill,
+    isLoading: billLoading,
+    reload: reloadBill,
+  } = useAsync(
+    async () => (activeBillId ? fetchBillById(activeBillId) : null),
+    [activeBillId],
+    Boolean(activeBillId),
+  )
+  const { data: events, reload: reloadEvents } = useAsync(
+    async () => (activeBillId ? fetchBillEvents(activeBillId) : []),
+    [activeBillId],
+    Boolean(activeBillId),
+  )
+  const {
+    data: config,
+    isLoading: configLoading,
+    error: configError,
+    reload: reloadConfig,
+  } = useAsync(
+    async () =>
+      propertyId ? fetchBillingConfiguration(propertyId) : null,
+    [propertyId],
+    Boolean(propertyId),
+  )
+
+  const refreshAll = useCallback(async () => {
+    await reloadUploads()
+    await reloadBill()
+    await reloadEvents()
+  }, [reloadUploads, reloadBill, reloadEvents])
+
 
   const handleUpload = useCallback(
     async (file: File) => {
@@ -51,25 +111,100 @@ export function AdminPage() {
         return
       }
 
-      setIsUploading(true)
+      setIsBusy(true)
       setUploadError(null)
+      setProgress(10)
+      setProgressLabel('Uploading PDF…')
 
       try {
-        await uploadMeterReading({ propertyId, file })
-        await reloadUploads()
+        const draft = await uploadMeterReading({ propertyId, file })
+        setActiveBillId(draft.id)
+        setProgress(45)
+        setProgressLabel('Running AI extraction…')
+
+        const extraction = await extractBillFields(file)
+        setProgress(75)
+        setProgressLabel('Saving draft…')
+        await saveAiExtraction(draft.id, extraction)
+        setProgress(100)
+        setProgressLabel('Complete')
+        notify.success('Bill extracted and saved as draft')
+        await refreshAll()
       } catch (err) {
-        setUploadError(
-          err instanceof Error ? err.message : 'Upload failed. Please try again.',
-        )
+        const message =
+          err instanceof Error ? err.message : 'Upload or AI extraction failed'
+        setUploadError(message)
+        notify.error(message)
       } finally {
-        setIsUploading(false)
+        setIsBusy(false)
       }
     },
-    [propertyId, reloadUploads],
+    [propertyId, refreshAll],
   )
 
-  const isLoading = propertiesLoading || uploadsLoading
-  const error = propertiesError ?? uploadsError
+  const initialValues = useMemo(() => {
+
+    if (!activeBill) return null
+    if (activeBill.validatedJson) return toFormValues(activeBill.validatedJson)
+    if (activeBill.aiJson) return toFormValues(activeBill.aiJson)
+    return toFormValues({
+      generation: activeBill.generation,
+      import_units: activeBill.importKwh,
+      export_units: activeBill.exportKwh,
+      fixed_charge: activeBill.fixedCharge,
+      security_deposit: activeBill.securityDeposit,
+      arrears: activeBill.arrears,
+      bill_date: activeBill.billDate,
+      due_date: activeBill.dueDate,
+      consumer_number: activeBill.consumerNumber,
+    })
+  }, [activeBill])
+
+  const handleSave = async (values: ReviewFormValues) => {
+    if (!activeBillId) return
+    setIsSaving(true)
+    try {
+      await saveReviewedBill(activeBillId, values)
+      notify.success('Draft saved')
+      await refreshAll()
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : 'Save failed')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handlePublish = async (values: ReviewFormValues) => {
+    if (!activeBillId) return
+    setIsPublishing(true)
+    try {
+      await saveReviewedBill(activeBillId, values)
+      await publishBill(activeBillId)
+      notify.success('Bill published')
+      await refreshAll()
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : 'Publish failed')
+    } finally {
+      setIsPublishing(false)
+    }
+  }
+
+  const runAction = async (
+    action: () => Promise<unknown>,
+    successMessage: string,
+  ) => {
+    try {
+      await action()
+      notify.success(successMessage)
+      await refreshAll()
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : 'Action failed')
+    }
+  }
+
+  const isLoading =
+    propertiesLoading || uploadsLoading || configLoading || billLoading
+  const error = propertiesError ?? uploadsError ?? configError
   const uploads = (uploadRows ?? []).map(toUploadItem)
 
 
@@ -89,6 +224,7 @@ export function AdminPage() {
           onRetry={() => {
             void refreshProperties()
             void reloadUploads()
+            void reloadConfig()
 
           }}
         />
@@ -105,21 +241,90 @@ export function AdminPage() {
             Meter Uploads
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Select a property in the header, upload a PDF, and save draft metadata.
+            Upload, extract, review, and publish bills for{' '}
+            {property?.label ?? 'a property'}.
           </p>
         </div>
 
         <UploadCard
           propertyLabel={property?.label}
-          isUploading={isUploading}
+          isBusy={isBusy}
+          progress={progress}
+          progressLabel={progressLabel}
           error={uploadError}
           onUpload={handleUpload}
         />
 
+        {activeBill && initialValues && config ? (
+          <section className="space-y-4">
+            <SectionHeader
+              title="Review & Publish"
+              description={`${activeBill.pdfFileName ?? 'Draft bill'} · ${activeBill.status}`}
+            />
+            <BillReviewForm
+              key={activeBill.id}
+              initial={initialValues}
+              original={activeBill.aiJson}
+              config={config}
+              isSaving={isSaving}
+              isPublishing={isPublishing}
+              onSave={handleSave}
+              onPublish={handlePublish}
+            />
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  void runAction(
+                    () => archiveBill(activeBill.id),
+                    'Bill archived',
+                  )
+                }
+              >
+                <Archive className="h-4 w-4" />
+                Archive
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  void runAction(async () => {
+                    const copy = await duplicateBill(activeBill.id)
+                    setActiveBillId(copy.id)
+                  }, 'Bill duplicated')
+                }
+              >
+                <Copy className="h-4 w-4" />
+                Duplicate
+              </Button>
+              {activeBill.status === 'draft' ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() =>
+                    void runAction(async () => {
+                      await deleteDraftBill(activeBill.id)
+                      setActiveBillId(null)
+                    }, 'Draft deleted')
+                  }
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete Draft
+                </Button>
+              ) : null}
+            </div>
+            <SectionHeader title="Audit Timeline" />
+            <AuditTimeline events={events ?? []} />
+
+          </section>
+        ) : null}
+
         <section>
           <SectionHeader
             title="Recent Uploads"
-            description="Latest meter reading files"
+            description="Select a bill to review"
           />
           {uploads.length === 0 ? (
             <EmptyState
@@ -134,29 +339,35 @@ export function AdminPage() {
                   key={upload.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  transition={{ duration: 0.3, delay: index * 0.04 }}
                 >
-                  <Card className="border-border/50 bg-card/80 shadow-soft backdrop-blur-xl">
-                    <CardContent className="flex items-center gap-4 p-4 sm:p-5">
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-                        <FileText className="h-5 w-5" aria-hidden="true" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-foreground">
-                          {upload.fileName}
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {formatDateTime(upload.uploadedAt)}
-                        </p>
-                      </div>
-                      <Badge
-                        variant={statusVariant[upload.status]}
-                        className="capitalize"
-                      >
-                        {upload.status}
-                      </Badge>
-                    </CardContent>
-                  </Card>
+                  <button
+                    type="button"
+                    className="w-full text-left"
+                    onClick={() => setActiveBillId(upload.id)}
+                  >
+                    <Card className="border-border/50 bg-card/80 shadow-soft backdrop-blur-xl transition-shadow hover:shadow-md">
+                      <CardContent className="flex items-center gap-4 p-4 sm:p-5">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                          <FileText className="h-5 w-5" aria-hidden="true" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium text-foreground">
+                            {upload.fileName}
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {formatDateTime(upload.uploadedAt)}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={statusVariant[upload.status]}
+                          className="capitalize"
+                        >
+                          {upload.status}
+                        </Badge>
+                      </CardContent>
+                    </Card>
+                  </button>
                 </motion.div>
               ))}
             </div>

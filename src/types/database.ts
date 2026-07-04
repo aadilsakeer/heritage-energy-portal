@@ -8,6 +8,16 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export type BillEventType =
+  | 'pdf_uploaded'
+  | 'ai_completed'
+  | 'edited'
+  | 'published'
+  | 'republished'
+  | 'archived'
+  | 'duplicated'
+  | 'deleted'
+
 export interface Database {
   public: {
     Tables: {
@@ -94,6 +104,11 @@ export interface Database {
           pdf_path: string | null
           pdf_file_name: string | null
           due_date: string | null
+          bill_date: string | null
+          consumer_number: string | null
+          invoice_number: string | null
+          ai_json: Json | null
+          validated_json: Json | null
           published_at: string | null
           created_at: string
           updated_at: string
@@ -118,6 +133,11 @@ export interface Database {
           pdf_path?: string | null
           pdf_file_name?: string | null
           due_date?: string | null
+          bill_date?: string | null
+          consumer_number?: string | null
+          invoice_number?: string | null
+          ai_json?: Json | null
+          validated_json?: Json | null
           published_at?: string | null
           created_at?: string
           updated_at?: string
@@ -142,6 +162,11 @@ export interface Database {
           pdf_path?: string | null
           pdf_file_name?: string | null
           due_date?: string | null
+          bill_date?: string | null
+          consumer_number?: string | null
+          invoice_number?: string | null
+          ai_json?: Json | null
+          validated_json?: Json | null
           published_at?: string | null
           created_at?: string
           updated_at?: string
@@ -152,6 +177,38 @@ export interface Database {
             columns: ['property_id']
             isOneToOne: false
             referencedRelation: 'properties'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      bill_events: {
+        Row: {
+          id: string
+          bill_id: string
+          event_type: BillEventType
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          bill_id: string
+          event_type: BillEventType
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          bill_id?: string
+          event_type?: BillEventType
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'bill_events_bill_id_fkey'
+            columns: ['bill_id']
+            isOneToOne: false
+            referencedRelation: 'bills'
             referencedColumns: ['id']
           },
         ]
@@ -171,3 +228,4 @@ export type BillingConfigRow =
   Database['public']['Tables']['billing_configuration']['Row']
 export type BillRow = Database['public']['Tables']['bills']['Row']
 export type BillInsert = Database['public']['Tables']['bills']['Insert']
+export type BillEventRow = Database['public']['Tables']['bill_events']['Row']

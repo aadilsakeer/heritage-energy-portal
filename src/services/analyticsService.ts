@@ -1,4 +1,10 @@
-import type { AnalyticsData, Bill, MonthlyMetric, SavingsSummary } from '@/types'
+import type {
+  AnalyticsData,
+  AnalyticsSummary,
+  Bill,
+  MonthlyMetric,
+  SavingsSummary,
+} from '@/types'
 import { formatMonthShort } from '@/utils/format'
 import { fetchPublishedBills } from '@/services/billService'
 
@@ -9,22 +15,41 @@ function toMetric(bill: Bill, value: number): MonthlyMetric {
   }
 }
 
+function buildSummary(bills: Bill[]): AnalyticsSummary {
+  const totals = bills.map((bill) => bill.tenantTotal ?? 0)
+  const consumptions = bills.map((bill) => bill.consumption ?? 0)
+  const savings = bills.map((bill) => bill.discountAmount ?? 0)
+  const generation = bills.map((bill) => bill.generation ?? 0)
+
+  const average = (values: number[]) =>
+    values.length === 0
+      ? 0
+      : Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 100) /
+        100
+
+  return {
+    highestBill: totals.length ? Math.max(...totals) : 0,
+    lowestBill: totals.length ? Math.min(...totals) : 0,
+    averageBill: average(totals),
+    averageConsumption: average(consumptions),
+    lifetimeSavings: savings.reduce((sum, value) => sum + value, 0),
+    lifetimeSolarGeneration: generation.reduce((sum, value) => sum + value, 0),
+  }
+}
+
 export async function fetchAnalytics(propertyId: string): Promise<AnalyticsData> {
   const bills = await fetchPublishedBills(propertyId)
 
   return {
-    monthlyBills: bills.map((bill) =>
-      toMetric(bill, bill.tenantTotal ?? 0),
-    ),
+    monthlyBills: bills.map((bill) => toMetric(bill, bill.tenantTotal ?? 0)),
     monthlySavings: bills.map((bill) =>
       toMetric(bill, bill.discountAmount ?? 0),
     ),
     solarGeneration: bills.map((bill) =>
       toMetric(bill, bill.generation ?? 0),
     ),
-    consumption: bills.map((bill) =>
-      toMetric(bill, bill.consumption ?? 0),
-    ),
+    consumption: bills.map((bill) => toMetric(bill, bill.consumption ?? 0)),
+    summary: buildSummary(bills),
   }
 }
 
@@ -44,7 +69,6 @@ export function buildSavingsSummary(
     currency: '₹',
   }
 }
-
 
 export function buildQuickStats(bill: Bill | null) {
   if (!bill) return []

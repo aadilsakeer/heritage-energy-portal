@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 import { LoadingSkeleton } from '@/components/cards/LoadingSkeleton'
 import { AppShell } from '@/components/layout/AppShell'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
@@ -36,6 +37,14 @@ export default function App() {
                 }
               />
               <Route
+                path={`${ROUTES.bill}/:billId`}
+                element={
+                  <Suspense fallback={<LoadingSkeleton variant="page" />}>
+                    <BillPage />
+                  </Suspense>
+                }
+              />
+              <Route
                 path={ROUTES.history}
                 element={
                   <Suspense fallback={<LoadingSkeleton variant="page" />}>
@@ -62,6 +71,13 @@ export default function App() {
               <Route path="*" element={<Navigate to={ROUTES.home} replace />} />
             </Route>
           </Routes>
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              className:
+                'rounded-2xl border border-border bg-card text-card-foreground shadow-soft',
+            }}
+          />
         </BrowserRouter>
       </PropertyProvider>
     </ThemeProvider>

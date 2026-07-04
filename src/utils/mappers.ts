@@ -1,14 +1,27 @@
+import type { ExtractionResult } from '@/lib/extractionSchema'
 import type {
   Bill,
   BillBreakdown,
+  BillEvent,
   BillingConfiguration,
   CurrentBill,
   HistoryItem,
   Property,
   UploadItem,
 } from '@/types'
-import type { BillRow, BillingConfigRow, PropertyRow } from '@/types/database'
+import type {
+  BillEventRow,
+  BillRow,
+  BillingConfigRow,
+  Json,
+  PropertyRow,
+} from '@/types/database'
 import { formatMonthLabel } from '@/utils/format'
+
+function asExtraction(value: Json | null): ExtractionResult | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  return value as ExtractionResult
+}
 
 export function mapProperty(row: PropertyRow): Property {
   return {
@@ -53,13 +66,31 @@ export function mapBill(row: BillRow): Bill {
     pdfPath: row.pdf_path,
     pdfFileName: row.pdf_file_name,
     dueDate: row.due_date,
+    billDate: row.bill_date,
+    consumerNumber: row.consumer_number,
+    invoiceNumber: row.invoice_number,
+    aiJson: asExtraction(row.ai_json),
+    validatedJson: asExtraction(row.validated_json),
     publishedAt: row.published_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
 }
 
-export function toCurrentBill(bill: Bill): CurrentBill {
+export function mapBillEvent(row: BillEventRow): BillEvent {
+  return {
+    id: row.id,
+    billId: row.bill_id,
+    eventType: row.event_type,
+    metadata: row.metadata,
+    createdAt: row.created_at,
+  }
+}
+
+export function toCurrentBill(
+  bill: Bill,
+  propertyLabel?: string,
+): CurrentBill {
   return {
     id: bill.id,
     month: formatMonthLabel(bill.billingMonth),
@@ -67,6 +98,7 @@ export function toCurrentBill(bill: Bill): CurrentBill {
     dueDate: bill.dueDate ?? bill.billingMonth,
     status: bill.status,
     currency: '₹',
+    propertyLabel,
   }
 }
 
@@ -87,13 +119,18 @@ export function toBillBreakdown(bill: Bill): BillBreakdown {
   }
 }
 
-export function toHistoryItem(bill: Bill): HistoryItem {
+export function toHistoryItem(
+  bill: Bill,
+  propertyLabel?: string,
+): HistoryItem {
   return {
     id: bill.id,
     month: formatMonthLabel(bill.billingMonth),
     status: bill.status,
     amount: bill.tenantTotal ?? 0,
     currency: '₹',
+    propertyId: bill.propertyId,
+    propertyLabel,
   }
 }
 
@@ -105,4 +142,23 @@ export function toUploadItem(bill: Bill): UploadItem {
     status: bill.status,
     propertyId: bill.propertyId,
   }
+}
+
+export function billingMonthFromDate(dateString: string | null): string {
+  if (!dateString) {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  }
+  const [year, month] = dateString.slice(0, 10).split('-')
+  return `${year}-${month}-01`
+}
+
+export function storagePath(
+  propertyId: string,
+  billingMonth: string,
+  fileName: string,
+): string {
+  const [year, month] = billingMonth.slice(0, 10).split('-')
+  const extension = fileName.split('.').pop() ?? 'pdf'
+  return `${propertyId}/${year}/${month}/${crypto.randomUUID()}.${extension}`
 }

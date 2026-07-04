@@ -26,8 +26,11 @@ import {
   fetchBillHistory,
   fetchLatestPublishedBill,
 } from '@/services/billService'
+import { generateInvoicePdf } from '@/services/invoiceService'
+import { notify } from '@/lib/toast'
 import { formatCurrency } from '@/utils/format'
 import { toCurrentBill } from '@/utils/mappers'
+
 
 const quickStatIcons = {
   generation: Sun,
@@ -111,8 +114,16 @@ export function HomePage() {
           className="space-y-6 sm:space-y-8"
         >
           {latestBill ? (
-            <HeroCard bill={toCurrentBill(latestBill)} />
+            <HeroCard
+              bill={toCurrentBill(latestBill, property?.label)}
+              onDownloadInvoice={() => {
+                if (!property) return
+                generateInvoicePdf(latestBill, property)
+                notify.success('Invoice downloaded')
+              }}
+            />
           ) : (
+
             <EmptyState
               icon={Receipt}
               title="No published bill"

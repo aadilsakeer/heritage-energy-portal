@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/refs, react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
+
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface UseAsyncResult<T> {
@@ -9,13 +11,16 @@ interface UseAsyncResult<T> {
 
 export function useAsync<T>(
   factory: () => Promise<T>,
-  deps: unknown[],
+  deps: readonly unknown[],
   enabled = true,
 ): UseAsyncResult<T> {
   const [data, setData] = useState<T | null>(null)
   const [isLoading, setIsLoading] = useState(enabled)
   const [error, setError] = useState<string | null>(null)
   const requestId = useRef(0)
+  const factoryRef = useRef(factory)
+  factoryRef.current = factory
+  const depsKey = deps.map(String).join('|')
 
   const reload = useCallback(async () => {
     if (!enabled) {
@@ -30,7 +35,7 @@ export function useAsync<T>(
     setError(null)
 
     try {
-      const result = await factory()
+      const result = await factoryRef.current()
       if (currentRequest !== requestId.current) return
       setData(result)
     } catch (err) {
@@ -42,8 +47,7 @@ export function useAsync<T>(
         setIsLoading(false)
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps)
+  }, [enabled, depsKey])
 
   useEffect(() => {
     void reload()

@@ -4,18 +4,23 @@ import { FileUp, LoaderCircle, UploadCloud } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 
 interface UploadCardProps {
   propertyLabel?: string
-  isUploading?: boolean
+  isBusy?: boolean
+  progress?: number
+  progressLabel?: string
   error?: string | null
   onUpload: (file: File) => Promise<void> | void
 }
 
 export function UploadCard({
   propertyLabel,
-  isUploading = false,
+  isBusy = false,
+  progress = 0,
+  progressLabel,
   error,
   onUpload,
 }: UploadCardProps) {
@@ -32,20 +37,21 @@ export function UploadCard({
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       const file = acceptedFiles[0]
-      if (!file || isUploading) return
+      if (!file || isBusy) return
       void handleUpload(file)
     },
-    [handleUpload, isUploading],
+    [handleUpload, isBusy],
   )
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     multiple: false,
     noClick: true,
-    disabled: isUploading,
+    disabled: isBusy,
     accept: {
       'application/pdf': ['.pdf'],
-      'image/*': ['.png', '.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/jpeg': ['.jpg', '.jpeg'],
     },
   })
 
@@ -64,12 +70,12 @@ export function UploadCard({
               isDragActive
                 ? 'border-primary bg-primary/5'
                 : 'border-border bg-muted/30 hover:border-primary/40 hover:bg-muted/50',
-              isUploading && 'pointer-events-none opacity-70',
+              isBusy && 'pointer-events-none opacity-80',
             )}
           >
             <input {...getInputProps()} aria-label="Meter reading file" />
             <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary">
-              {isUploading ? (
+              {isBusy ? (
                 <LoaderCircle className="h-7 w-7 animate-spin" aria-hidden="true" />
               ) : (
                 <UploadCloud className="h-7 w-7" aria-hidden="true" />
@@ -78,13 +84,13 @@ export function UploadCard({
             <h3 className="text-lg font-semibold tracking-tight">
               {isDragActive
                 ? 'Drop your file here'
-                : isUploading
-                  ? 'Uploading…'
+                : isBusy
+                  ? progressLabel ?? 'Processing…'
                   : 'Upload meter reading'}
             </h3>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
               {propertyLabel
-                ? `Upload a PDF for ${propertyLabel}. AI analysis comes in a later phase.`
+                ? `Upload a PDF, PNG, or JPEG for ${propertyLabel}.`
                 : 'Select a property, then upload a PDF or image.'}
             </p>
 
@@ -95,27 +101,28 @@ export function UploadCard({
               </div>
             ) : null}
 
+            {isBusy ? (
+              <div className="mt-5 w-full max-w-sm space-y-2">
+                <Progress value={progress} aria-label={progressLabel ?? 'Progress'} />
+                <p className="text-xs text-muted-foreground">{progress}%</p>
+              </div>
+            ) : null}
+
             {error ? (
               <p className="mt-3 text-sm text-destructive" role="alert">
                 {error}
               </p>
             ) : null}
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-6">
               <Button
                 type="button"
                 onClick={open}
-                disabled={isUploading || !propertyLabel}
+                disabled={isBusy || !propertyLabel}
                 aria-label="Upload meter reading file"
               >
                 <UploadCloud className="h-4 w-4" aria-hidden="true" />
                 Upload File
-              </Button>
-              <Button type="button" variant="outline" disabled>
-                Analyze
-              </Button>
-              <Button type="button" variant="accent" disabled>
-                Publish
               </Button>
             </div>
           </div>

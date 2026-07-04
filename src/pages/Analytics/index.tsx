@@ -4,13 +4,17 @@ import { ChartCard } from '@/components/cards/ChartCard'
 import { EmptyState } from '@/components/cards/EmptyState'
 import { ErrorState } from '@/components/cards/ErrorState'
 import { LoadingSkeleton } from '@/components/cards/LoadingSkeleton'
+import { StatCard } from '@/components/cards/StatCard'
 import { MonthlyBarChart } from '@/components/charts/MonthlyBarChart'
 import { MonthlyLineChart } from '@/components/charts/MonthlyLineChart'
 import { PageContainer } from '@/components/layout/PageContainer'
+import { SectionHeader } from '@/components/layout/SectionHeader'
+import { CountUp } from '@/components/ui/CountUp'
 import { useProperty } from '@/context/PropertyContext'
 import { useAsync } from '@/hooks/useAsync'
 import { easeOut } from '@/lib/motion'
 import { fetchAnalytics } from '@/services/analyticsService'
+import { formatCurrency, formatEnergy } from '@/utils/format'
 
 export function AnalyticsPage() {
   const {
@@ -29,6 +33,14 @@ export function AnalyticsPage() {
           monthlySavings: [],
           solarGeneration: [],
           consumption: [],
+          summary: {
+            highestBill: 0,
+            lowestBill: 0,
+            averageBill: 0,
+            averageConsumption: 0,
+            lifetimeSavings: 0,
+            lifetimeSolarGeneration: 0,
+          },
         }
       }
       return fetchAnalytics(propertyId)
@@ -64,6 +76,7 @@ export function AnalyticsPage() {
   }
 
   const hasData = (data?.monthlyBills.length ?? 0) > 0
+  const summary = data?.summary
 
   return (
     <PageContainer>
@@ -87,62 +100,105 @@ export function AnalyticsPage() {
               Energy Insights
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Monthly trends for {property?.label ?? 'property'}
+              Live trends for {property?.label ?? 'property'}
             </p>
           </header>
 
-          {!hasData || !data ? (
+          {!hasData || !data || !summary ? (
             <EmptyState
               icon={BarChart3}
               title="No analytics yet"
               description="Published bills will populate charts automatically."
             />
           ) : (
-            <div className="grid gap-4 lg:grid-cols-2">
-              <ChartCard
-                title="Monthly Bills"
-                description="Amount payable over published months"
-                delay={0.04}
-              >
-                <MonthlyBarChart data={data.monthlyBills} unit="₹" />
-              </ChartCard>
+            <>
+              <section>
+                <SectionHeader title="Summary" />
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                  <StatCard
+                    label="Highest Bill"
+                    value={formatCurrency(summary.highestBill)}
+                    delay={0.02}
+                  />
+                  <StatCard
+                    label="Lowest Bill"
+                    value={formatCurrency(summary.lowestBill)}
+                    delay={0.04}
+                  />
+                  <StatCard
+                    label="Average Bill"
+                    value={formatCurrency(summary.averageBill)}
+                    delay={0.06}
+                  />
+                  <StatCard
+                    label="Average Consumption"
+                    value={formatEnergy(summary.averageConsumption)}
+                    delay={0.08}
+                  />
+                  <StatCard
+                    label="Lifetime Savings"
+                    value={formatCurrency(summary.lifetimeSavings)}
+                    delay={0.1}
+                  />
+                  <StatCard
+                    label="Lifetime Solar Generation"
+                    value={formatEnergy(summary.lifetimeSolarGeneration)}
+                    delay={0.12}
+                  />
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Lifetime savings:{' '}
+                  <CountUp
+                    value={summary.lifetimeSavings}
+                    currency="₹"
+                    className="font-semibold text-foreground"
+                  />
+                </p>
+              </section>
 
-              <ChartCard
-                title="Monthly Savings"
-                description="Discount applied from solar"
-                delay={0.08}
-              >
-                <MonthlyBarChart
-                  data={data.monthlySavings}
-                  color="var(--color-chart-3)"
-                  unit="₹"
-                />
-              </ChartCard>
-
-              <ChartCard
-                title="Solar Generation"
-                description="Energy produced by your panels"
-                delay={0.12}
-              >
-                <MonthlyLineChart
-                  data={data.solarGeneration}
-                  color="var(--color-primary)"
-                  unit="kWh"
-                />
-              </ChartCard>
-
-              <ChartCard
-                title="Consumption"
-                description="Calculated household usage"
-                delay={0.16}
-              >
-                <MonthlyLineChart
-                  data={data.consumption}
-                  color="var(--color-accent)"
-                  unit="kWh"
-                />
-              </ChartCard>
-            </div>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <ChartCard
+                  title="Monthly Bills"
+                  description="Amount payable over published months"
+                  delay={0.04}
+                >
+                  <MonthlyBarChart data={data.monthlyBills} unit="₹" />
+                </ChartCard>
+                <ChartCard
+                  title="Monthly Savings"
+                  description="Discount applied from solar"
+                  delay={0.08}
+                >
+                  <MonthlyBarChart
+                    data={data.monthlySavings}
+                    color="var(--color-chart-3)"
+                    unit="₹"
+                  />
+                </ChartCard>
+                <ChartCard
+                  title="Monthly Consumption"
+                  description="Calculated household usage"
+                  delay={0.12}
+                >
+                  <MonthlyLineChart
+                    data={data.consumption}
+                    color="var(--color-accent)"
+                    unit="kWh"
+                  />
+                </ChartCard>
+                <ChartCard
+                  title="Solar Generation"
+                  description="Energy produced by your panels"
+                  delay={0.16}
+                >
+                  <MonthlyLineChart
+                    data={data.solarGeneration}
+                    color="var(--color-primary)"
+                    unit="kWh"
+                  />
+                </ChartCard>
+              </div>
+            </>
           )}
         </motion.div>
       </AnimatePresence>

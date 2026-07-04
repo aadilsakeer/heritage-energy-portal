@@ -3,28 +3,38 @@ import {
   ArrowUpFromLine,
   BadgePercent,
   Building2,
+  Download,
   PlugZap,
   Receipt,
   Sun,
   Zap,
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useParams } from 'react-router-dom'
 import { EmptyState } from '@/components/cards/EmptyState'
 import { ErrorState } from '@/components/cards/ErrorState'
 import { LoadingSkeleton } from '@/components/cards/LoadingSkeleton'
 import { BreakdownCard } from '@/components/invoice/BreakdownCard'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { SectionHeader } from '@/components/layout/SectionHeader'
+import { Button } from '@/components/ui/button'
 import { useProperty } from '@/context/PropertyContext'
 import { useAsync } from '@/hooks/useAsync'
+import { notify } from '@/lib/toast'
 import { easeOut } from '@/lib/motion'
-import { fetchLatestPublishedBill } from '@/services/billService'
+import {
+  fetchBillById,
+  fetchLatestPublishedBill,
+} from '@/services/billService'
+import { generateInvoicePdf } from '@/services/invoiceService'
 import { formatCurrency, formatEnergy, formatMonthLabel } from '@/utils/format'
 import { toBillBreakdown } from '@/utils/mappers'
 
 export function BillPage() {
+  const { billId } = useParams()
   const {
     property,
+    properties,
     propertyId,
     isLoading: propertiesLoading,
     error: propertiesError,
@@ -33,11 +43,12 @@ export function BillPage() {
 
   const billQuery = useAsync(
     async () => {
+      if (billId) return fetchBillById(billId)
       if (!propertyId) return null
       return fetchLatestPublishedBill(propertyId)
     },
-    [propertyId],
-    Boolean(propertyId),
+    [billId, propertyId],
+    Boolean(billId || propertyId),
   )
 
   const isLoading = propertiesLoading || billQuery.isLoading
@@ -66,6 +77,8 @@ export function BillPage() {
   }
 
   const bill = billQuery.data
+  const billProperty =
+    properties.find((item) => item.id === bill?.propertyId) ?? property
 
   if (!bill) {
     return (
@@ -144,26 +157,36 @@ export function BillPage() {
     <PageContainer>
       <AnimatePresence mode="wait">
         <motion.div
-          key={propertyId ?? bill.id}
-          id={propertyId ? `property-panel-${propertyId}` : undefined}
-          role="tabpanel"
-          aria-labelledby={
-            propertyId ? `property-tab-${propertyId}` : undefined
-          }
+          key={bill.id}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.28, ease: easeOut }}
           className="space-y-6 sm:space-y-8"
         >
-          <header>
-            <p className="text-sm font-medium text-primary">Bill Breakdown</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-              {formatMonthLabel(bill.billingMonth)}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Latest published bill for {property?.label ?? 'property'}
-            </p>
+          <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-primary">Bill Breakdown</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+                {formatMonthLabel(bill.billingMonth)}
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {billProperty?.label ?? 'Property'} · {bill.status}
+              </p>
+            </div>
+            {billProperty ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  generateInvoicePdf(bill, billProperty)
+                  notify.success('Invoice downloaded')
+                }}
+              >
+                <Download className="h-4 w-4" />
+                Download Invoice
+              </Button>
+            ) : null}
           </header>
 
           <section aria-label="Energy and charges">
@@ -180,6 +203,27 @@ export function BillPage() {
                   delay={index * 0.04}
                 />
               ))}
+            </div>
+          </section>
+
+          <section aria-label="Owner paid amounts">
+            <SectionHeader
+              title="Owner Paid"
+              description="Not included in tenant bill"
+            />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <BreakdownCard
+                label="Security Deposit"
+                value={formatCurrency(breakdown.securityDeposit)}
+                icon={Building2}
+                accent="muted"
+              />
+              <BreakdownCard
+                label="Arrears"
+                value={formatCurrency(breakdown.arrears)}
+                icon={Receipt}
+                accent="muted"
+              />
             </div>
           </section>
         </motion.div>

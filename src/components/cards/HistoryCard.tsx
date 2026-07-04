@@ -44,7 +44,10 @@ export function HistoryCard({ item, index = 0, onClick }: HistoryCardProps) {
               </Badge>
             </div>
 
-            <p className="mt-1 text-sm text-muted-foreground">Monthly invoice</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {item.propertyLabel ?? 'Monthly invoice'}
+            </p>
+
           </div>
 
           <div className="flex items-center gap-2">

@@ -40,32 +40,38 @@ Status: COMPLETE
 
 ---
 
-## Phase 4
+## ✅ Phase 4
 - Gemini AI
 - PDF Extraction
 - Review Screen
 - Publish Workflow
 
-Status: PENDING
+Status: COMPLETE
 
 ---
 
-## Phase 5
+## ✅ Phase 5
 - Calculation Engine
 - Invoice
 - History
 - Real Charts
 - Savings
 
-Status: PENDING
+Status: COMPLETE
 
 ---
 
-## Phase 6
+## ✅ Phase 6
 - PWA
 - Performance
 - SEO
 - Deploy
 - Final Polish
 
-Status: PENDING
+Status: COMPLETE
+
+---
+
+## Release
+
+Heritage Solar v1.0 — production ready.

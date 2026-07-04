@@ -1,6 +1,7 @@
-import type { BillStatus } from '@/types/database'
+import type { BillEventType, BillStatus, Json } from '@/types/database'
+import type { ExtractionResult } from '@/lib/extractionSchema'
 
-export type { BillStatus }
+export type { BillStatus, BillEventType, ExtractionResult }
 
 export interface Property {
   id: string
@@ -38,9 +39,22 @@ export interface Bill {
   pdfPath: string | null
   pdfFileName: string | null
   dueDate: string | null
+  billDate: string | null
+  consumerNumber: string | null
+  invoiceNumber: string | null
+  aiJson: ExtractionResult | null
+  validatedJson: ExtractionResult | null
   publishedAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface BillEvent {
+  id: string
+  billId: string
+  eventType: BillEventType
+  metadata: Json
+  createdAt: string
 }
 
 export interface CurrentBill {
@@ -50,6 +64,7 @@ export interface CurrentBill {
   dueDate: string
   status: BillStatus
   currency: string
+  propertyLabel?: string
 }
 
 export interface SavingsSummary {
@@ -87,6 +102,8 @@ export interface HistoryItem {
   status: BillStatus
   amount: number
   currency: string
+  propertyId: string
+  propertyLabel?: string
 }
 
 export interface MonthlyMetric {
@@ -102,15 +119,19 @@ export interface UploadItem {
   propertyId: string
 }
 
+export interface AnalyticsSummary {
+  highestBill: number
+  lowestBill: number
+  averageBill: number
+  averageConsumption: number
+  lifetimeSavings: number
+  lifetimeSolarGeneration: number
+}
+
 export interface AnalyticsData {
   monthlyBills: MonthlyMetric[]
   monthlySavings: MonthlyMetric[]
   solarGeneration: MonthlyMetric[]
   consumption: MonthlyMetric[]
-}
-
-export interface AsyncState<T> {
-  data: T
-  isLoading: boolean
-  error: string | null
+  summary: AnalyticsSummary
 }

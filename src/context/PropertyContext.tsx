@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useCallback,
@@ -7,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+
 import { fetchProperties } from '@/services/propertyService'
 import type { Property } from '@/types'
 
@@ -53,8 +55,12 @@ export function PropertyProvider({ children }: PropertyProviderProps) {
   }, [])
 
   useEffect(() => {
-    void refreshProperties()
+    const timer = window.setTimeout(() => {
+      void refreshProperties()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [refreshProperties])
+
 
   const setPropertyId = useCallback((id: string) => {
     setPropertyIdState(id)

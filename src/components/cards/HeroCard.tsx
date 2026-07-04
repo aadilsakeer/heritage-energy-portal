@@ -4,16 +4,19 @@ import { Link } from 'react-router-dom'
 import type { CurrentBill } from '@/types'
 import { ROUTES } from '@/constants'
 import { easeOut } from '@/lib/motion'
-import { formatCurrency, formatDate } from '@/utils/format'
+import { formatDate } from '@/utils/format'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { CountUp } from '@/components/ui/CountUp'
 
 interface HeroCardProps {
   bill: CurrentBill
+  onDownloadInvoice?: () => void
 }
 
-export function HeroCard({ bill }: HeroCardProps) {
+export function HeroCard({ bill, onDownloadInvoice }: HeroCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
@@ -36,6 +39,7 @@ export function HeroCard({ bill }: HeroCardProps) {
               <div>
                 <p className="text-sm font-medium text-primary-foreground/80">
                   Current Bill
+                  {bill.propertyLabel ? ` · ${bill.propertyLabel}` : ''}
                 </p>
                 <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
                   {bill.month}
@@ -52,7 +56,7 @@ export function HeroCard({ bill }: HeroCardProps) {
             <div>
               <p className="text-sm text-primary-foreground/75">Amount Due</p>
               <p className="mt-1 text-4xl font-semibold tracking-tight sm:text-5xl">
-                {formatCurrency(bill.amountDue, bill.currency)}
+                <CountUp value={bill.amountDue} currency={bill.currency} />
               </p>
               <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-sm text-primary-foreground/90 backdrop-blur-md">
                 <CalendarDays className="h-4 w-4" aria-hidden="true" />
@@ -66,7 +70,10 @@ export function HeroCard({ bill }: HeroCardProps) {
                 variant="secondary"
                 className="bg-white text-emerald-900 hover:bg-white/90"
               >
-                <Link to={ROUTES.bill} aria-label="View bill breakdown">
+                <Link
+                  to={`${ROUTES.bill}/${bill.id}`}
+                  aria-label="View bill breakdown"
+                >
                   <FileText className="h-4 w-4" aria-hidden="true" />
                   View Bill
                 </Link>
@@ -74,9 +81,9 @@ export function HeroCard({ bill }: HeroCardProps) {
               <Button
                 type="button"
                 variant="outline"
-                aria-label="Download invoice (coming soon)"
+                aria-label="Download invoice"
                 className="border-white/25 bg-white/10 text-primary-foreground hover:bg-white/15 hover:text-primary-foreground"
-                onClick={() => undefined}
+                onClick={onDownloadInvoice}
               >
                 <Download className="h-4 w-4" aria-hidden="true" />
                 Download Invoice
