@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { APP_NAME, ROUTES } from '@/constants'
 import { Button } from '@/components/ui/button'
 import { PropertySwitcher } from '@/components/layout/PropertySwitcher'
+import { InstallPrompt } from '@/components/layout/InstallPrompt'
 import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 
 
@@ -36,6 +37,7 @@ export function AppHeader() {
           </Link>
 
           <div className="flex items-center gap-2">
+            <InstallPrompt />
             <NotificationCenter />
             <Button
               asChild
