@@ -8,7 +8,11 @@ export function AppShell() {
 
   return (
     <div className="relative min-h-svh bg-background">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(ellipse_at_top,oklch(0.7_0.12_155/0.12),transparent_70%)] dark:bg-[radial-gradient(ellipse_at_top,oklch(0.5_0.12_155/0.18),transparent_70%)]" />
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-[radial-gradient(ellipse_at_top,oklch(0.72_0.11_155/0.14),transparent_70%)] dark:bg-[radial-gradient(ellipse_at_top,oklch(0.48_0.11_155/0.2),transparent_70%)]"
+        aria-hidden="true"
+      />
+
       <AppHeader />
       <AnimatePresence mode="wait">
         <motion.div

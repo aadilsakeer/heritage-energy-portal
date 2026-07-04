@@ -8,137 +8,121 @@ import {
   Sun,
   Zap,
 } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { BreakdownCard } from '@/components/invoice/BreakdownCard'
-import { BreakdownRow } from '@/components/invoice/BreakdownRow'
 import { PageContainer } from '@/components/layout/PageContainer'
-import { SectionTitle } from '@/components/layout/SectionTitle'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { BILL_BREAKDOWN, CURRENT_BILL } from '@/constants'
+import { SectionHeader } from '@/components/layout/SectionHeader'
+import { useProperty } from '@/context/PropertyContext'
+import { easeOut } from '@/lib/motion'
 import { formatCurrency, formatEnergy } from '@/utils/format'
 
 export function BillPage() {
-  const energyCards = [
+  const { propertyId, property, data } = useProperty()
+  const { breakdown, bill } = data
+
+  const cards = [
     {
       label: 'Generation',
-      value: formatEnergy(BILL_BREAKDOWN.generation, BILL_BREAKDOWN.unit),
+      value: formatEnergy(breakdown.generation, breakdown.unit),
       icon: Sun,
       accent: 'primary' as const,
+      description: 'Solar produced',
     },
     {
       label: 'Import',
-      value: formatEnergy(BILL_BREAKDOWN.gridImport, BILL_BREAKDOWN.unit),
+      value: formatEnergy(breakdown.gridImport, breakdown.unit),
       icon: ArrowDownToLine,
       accent: 'accent' as const,
+      description: 'Drawn from grid',
     },
     {
       label: 'Export',
-      value: formatEnergy(BILL_BREAKDOWN.export, BILL_BREAKDOWN.unit),
+      value: formatEnergy(breakdown.export, breakdown.unit),
       icon: ArrowUpFromLine,
       accent: 'primary' as const,
+      description: 'Sent to grid',
     },
     {
       label: 'Consumption',
-      value: formatEnergy(BILL_BREAKDOWN.consumption, BILL_BREAKDOWN.unit),
+      value: formatEnergy(breakdown.consumption, breakdown.unit),
       icon: PlugZap,
       accent: 'accent' as const,
+      description: 'Net usage',
+    },
+    {
+      label: 'Energy Charge',
+      value: formatCurrency(breakdown.energyCharge, breakdown.currency),
+      icon: Zap,
+      accent: 'muted' as const,
+      description: 'Utility energy cost',
+    },
+    {
+      label: 'Discount',
+      value: `−${formatCurrency(breakdown.discount, breakdown.currency)}`,
+      icon: BadgePercent,
+      accent: 'primary' as const,
+      description: 'Solar credit',
+    },
+    {
+      label: 'Fixed Charge',
+      value: formatCurrency(breakdown.fixedCharge, breakdown.currency),
+      icon: Building2,
+      accent: 'muted' as const,
+      description: 'Service fee',
+    },
+    {
+      label: 'Total',
+      value: formatCurrency(breakdown.total, breakdown.currency),
+      icon: Receipt,
+      accent: 'total' as const,
+      description: 'Amount payable',
     },
   ]
 
   return (
     <PageContainer>
-      <div className="space-y-6 sm:space-y-8">
-        <div>
-          <p className="text-sm font-medium text-primary">Bill Breakdown</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-            {CURRENT_BILL.month}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Transparent view of energy flow and charges
-          </p>
-        </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={propertyId}
+          id={`property-panel-${propertyId}`}
+          role="tabpanel"
+          aria-labelledby={`property-tab-${propertyId}`}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.28, ease: easeOut }}
+          className="space-y-6 sm:space-y-8"
+        >
+          <header>
+            <p className="text-sm font-medium text-primary">Bill Breakdown</p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+              {bill.month}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Transparent charges for {property.label}
+            </p>
+          </header>
 
-        <section>
-          <SectionTitle title="Energy Flow" />
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-            {energyCards.map((card, index) => (
-              <BreakdownCard
-                key={card.label}
-                label={card.label}
-                value={card.value}
-                icon={card.icon}
-                accent={card.accent}
-                delay={index * 0.05}
-              />
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <SectionTitle title="Charges" />
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.15 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Receipt className="h-4 w-4 text-primary" />
-                  Calculation Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1">
-                <BreakdownRow
-                  label="Energy Charge"
-                  value={formatCurrency(
-                    BILL_BREAKDOWN.energyCharge,
-                    BILL_BREAKDOWN.currency,
-                  )}
+          <section aria-label="Energy and charges">
+            <SectionHeader title="Breakdown" />
+            <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2 lg:grid-cols-4 lg:gap-4">
+              {cards.map((card, index) => (
+                <BreakdownCard
+                  key={card.label}
+                  label={card.label}
+                  value={card.value}
+                  icon={card.icon}
+                  accent={card.accent}
+                  description={card.description}
+                  delay={index * 0.04}
                 />
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Zap className="h-3.5 w-3.5" />
-                  Grid import billed at utility rates
-                </div>
-
-                <BreakdownRow
-                  label="Solar Discount"
-                  value={`−${formatCurrency(
-                    BILL_BREAKDOWN.discount,
-                    BILL_BREAKDOWN.currency,
-                  )}`}
-                  muted
-                />
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <BadgePercent className="h-3.5 w-3.5" />
-                  Credit from exported generation
-                </div>
-
-                <BreakdownRow
-                  label="Fixed Charge"
-                  value={formatCurrency(
-                    BILL_BREAKDOWN.fixedCharge,
-                    BILL_BREAKDOWN.currency,
-                  )}
-                />
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Building2 className="h-3.5 w-3.5" />
-                  Connection and service fee
-                </div>
-
-                <BreakdownRow
-                  label="Total Payable"
-                  value={formatCurrency(
-                    BILL_BREAKDOWN.total,
-                    BILL_BREAKDOWN.currency,
-                  )}
-                  emphasize
-                />
-              </CardContent>
-            </Card>
-          </motion.div>
-        </section>
-      </div>
+              ))}
+            </div>
+          </section>
+        </motion.div>
+      </AnimatePresence>
     </PageContainer>
   )
 }
+
+export default BillPage

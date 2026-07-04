@@ -54,7 +54,15 @@ export function MonthlyBarChart({
               'Value',
             ]}
           />
-          <Bar dataKey="value" fill={color} radius={[10, 10, 4, 4]} />
+          <Bar
+            dataKey="value"
+            fill={color}
+            radius={[10, 10, 4, 4]}
+            isAnimationActive
+            animationDuration={700}
+            animationEasing="ease-out"
+          />
+
         </BarChart>
       </ResponsiveContainer>
     </div>

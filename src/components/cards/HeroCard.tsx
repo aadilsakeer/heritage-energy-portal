@@ -1,8 +1,9 @@
-import { Download, Calculator, CalendarDays } from 'lucide-react'
+import { CalendarDays, Download, FileText } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import type { CurrentBill } from '@/types'
 import { ROUTES } from '@/constants'
+import { easeOut } from '@/lib/motion'
 import { formatCurrency, formatDate } from '@/utils/format'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,14 +16,20 @@ interface HeroCardProps {
 export function HeroCard({ bill }: HeroCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.35, ease: easeOut }}
     >
-      <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary via-primary to-emerald-700 text-primary-foreground shadow-soft dark:from-primary dark:via-emerald-600 dark:to-emerald-800">
+      <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary via-emerald-600 to-emerald-800 text-primary-foreground shadow-soft dark:from-emerald-500 dark:via-emerald-600 dark:to-emerald-900">
         <CardContent className="relative p-6 sm:p-8">
-          <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-          <div className="pointer-events-none absolute -bottom-10 left-1/3 h-32 w-32 rounded-full bg-accent/20 blur-2xl" />
+          <div
+            className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10 blur-3xl"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute -bottom-12 left-1/4 h-36 w-36 rounded-full bg-accent/25 blur-3xl"
+            aria-hidden="true"
+          />
 
           <div className="relative space-y-6">
             <div className="flex items-start justify-between gap-3">
@@ -36,7 +43,7 @@ export function HeroCard({ bill }: HeroCardProps) {
               </div>
               <Badge
                 variant="secondary"
-                className="border-0 bg-white/15 text-primary-foreground capitalize backdrop-blur-sm"
+                className="border-0 bg-white/15 capitalize text-primary-foreground backdrop-blur-md"
               >
                 {bill.status}
               </Badge>
@@ -47,9 +54,9 @@ export function HeroCard({ bill }: HeroCardProps) {
               <p className="mt-1 text-4xl font-semibold tracking-tight sm:text-5xl">
                 {formatCurrency(bill.amountDue, bill.currency)}
               </p>
-              <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-sm text-primary-foreground/90 backdrop-blur-sm">
-                <CalendarDays className="h-4 w-4" />
-                Due {formatDate(bill.dueDate)}
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-sm text-primary-foreground/90 backdrop-blur-md">
+                <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                <span>Due {formatDate(bill.dueDate)}</span>
               </div>
             </div>
 
@@ -57,18 +64,21 @@ export function HeroCard({ bill }: HeroCardProps) {
               <Button
                 asChild
                 variant="secondary"
-                className="bg-white text-emerald-800 hover:bg-white/90"
+                className="bg-white text-emerald-900 hover:bg-white/90"
               >
-                <Link to={ROUTES.bill}>
-                  <Calculator className="h-4 w-4" />
-                  View Calculation
+                <Link to={ROUTES.bill} aria-label="View bill breakdown">
+                  <FileText className="h-4 w-4" aria-hidden="true" />
+                  View Bill
                 </Link>
               </Button>
               <Button
+                type="button"
                 variant="outline"
+                aria-label="Download invoice (coming soon)"
                 className="border-white/25 bg-white/10 text-primary-foreground hover:bg-white/15 hover:text-primary-foreground"
+                onClick={() => undefined}
               >
-                <Download className="h-4 w-4" />
+                <Download className="h-4 w-4" aria-hidden="true" />
                 Download Invoice
               </Button>
             </div>

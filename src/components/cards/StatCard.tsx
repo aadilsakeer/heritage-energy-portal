@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import { TrendingDown, TrendingUp } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { easeOut } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 
@@ -13,6 +14,7 @@ interface StatCardProps {
   accent?: 'primary' | 'accent'
   delay?: number
   className?: string
+  size?: 'default' | 'large'
 }
 
 export function StatCard({
@@ -24,27 +26,34 @@ export function StatCard({
   accent = 'primary',
   delay = 0,
   className,
+  size = 'default',
 }: StatCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 14 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.35, delay, ease: easeOut }}
       whileHover={{ y: -2 }}
       className={className}
     >
-      <Card className="h-full transition-shadow hover:shadow-md">
-        <CardContent className="flex h-full flex-col gap-4 p-5">
+      <Card className="h-full border-border/50 bg-card/80 shadow-soft backdrop-blur-xl transition-shadow hover:shadow-md">
+        <CardContent
+          className={cn(
+            'flex h-full flex-col gap-4',
+            size === 'large' ? 'p-6 sm:p-7' : 'p-5',
+          )}
+        >
           <div className="flex items-start justify-between gap-3">
             <p className="text-sm text-muted-foreground">{label}</p>
             {Icon ? (
               <span
                 className={cn(
-                  'flex h-9 w-9 items-center justify-center rounded-2xl',
+                  'flex h-10 w-10 items-center justify-center rounded-2xl',
                   accent === 'primary'
                     ? 'bg-primary/10 text-primary'
                     : 'bg-accent/10 text-accent',
                 )}
+                aria-hidden="true"
               >
                 <Icon className="h-4 w-4" />
               </span>
@@ -52,7 +61,12 @@ export function StatCard({
           </div>
 
           <div className="mt-auto space-y-2">
-            <p className="text-2xl font-semibold tracking-tight text-foreground">
+            <p
+              className={cn(
+                'font-semibold tracking-tight text-foreground',
+                size === 'large' ? 'text-3xl sm:text-4xl' : 'text-2xl',
+              )}
+            >
               {value}
             </p>
             {trend ? (
@@ -60,16 +74,16 @@ export function StatCard({
                 className={cn(
                   'inline-flex items-center gap-1 text-xs font-medium',
                   trendUp
-                    ? 'text-emerald-600 dark:text-emerald-400'
+                    ? 'text-emerald-700 dark:text-emerald-400'
                     : 'text-accent',
                 )}
               >
                 {trendUp ? (
-                  <TrendingUp className="h-3.5 w-3.5" />
+                  <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
                 ) : (
-                  <TrendingDown className="h-3.5 w-3.5" />
+                  <TrendingDown className="h-3.5 w-3.5" aria-hidden="true" />
                 )}
-                {trend}
+                <span>{trend}</span>
               </div>
             ) : null}
           </div>

@@ -2,6 +2,14 @@ export type BillStatus = 'published' | 'draft' | 'pending'
 
 export type UploadStatus = 'processed' | 'pending' | 'failed'
 
+export type PropertyId = 'home' | 'heritage'
+
+export interface Property {
+  id: PropertyId
+  label: string
+  shortLabel: string
+}
+
 export interface CurrentBill {
   month: string
   amountDue: number
@@ -11,8 +19,8 @@ export interface CurrentBill {
 }
 
 export interface SavingsSummary {
-  solarSavings: number
-  energySavings: number
+  savedThisMonth: number
+  lifetimeSavings: number
   currency: string
 }
 
@@ -57,8 +65,14 @@ export interface UploadItem {
   status: UploadStatus
 }
 
-export interface NavItem {
-  label: string
-  path: string
-  icon: string
+export interface PropertyData {
+  bill: CurrentBill
+  savings: SavingsSummary
+  quickStats: QuickStat[]
+  breakdown: BillBreakdown
+  history: HistoryItem[]
+  monthlyBills: MonthlyMetric[]
+  monthlyConsumption: MonthlyMetric[]
+  monthlySavings: MonthlyMetric[]
+  solarGeneration: MonthlyMetric[]
 }

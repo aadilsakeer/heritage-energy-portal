@@ -1,18 +1,25 @@
-import type { BillBreakdown, CurrentBill, HistoryItem } from '@/types'
-import {
-  BILL_BREAKDOWN,
-  CURRENT_BILL,
-  HISTORY_ITEMS,
-} from '@/constants'
+import type {
+  BillBreakdown,
+  CurrentBill,
+  HistoryItem,
+  PropertyId,
+} from '@/types'
+import { PROPERTY_DATA } from '@/constants'
 
-export async function getCurrentBill(): Promise<CurrentBill> {
-  return CURRENT_BILL
+export async function getCurrentBill(
+  propertyId: PropertyId = 'home',
+): Promise<CurrentBill> {
+  return PROPERTY_DATA[propertyId].bill
 }
 
-export async function getBillBreakdown(): Promise<BillBreakdown> {
-  return BILL_BREAKDOWN
+export async function getBillBreakdown(
+  propertyId: PropertyId = 'home',
+): Promise<BillBreakdown> {
+  return PROPERTY_DATA[propertyId].breakdown
 }
 
-export async function getBillHistory(): Promise<HistoryItem[]> {
-  return HISTORY_ITEMS
+export async function getBillHistory(
+  propertyId: PropertyId = 'home',
+): Promise<HistoryItem[]> {
+  return PROPERTY_DATA[propertyId].history
 }

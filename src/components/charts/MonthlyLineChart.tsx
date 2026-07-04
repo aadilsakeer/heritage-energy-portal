@@ -67,7 +67,11 @@ export function MonthlyLineChart({
             stroke={color}
             strokeWidth={2.5}
             fill={`url(#${gradientId})`}
+            isAnimationActive
+            animationDuration={700}
+            animationEasing="ease-out"
           />
+
         </AreaChart>
       </ResponsiveContainer>
     </div>
