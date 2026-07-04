@@ -1,4 +1,9 @@
-export type BillStatus = 'draft' | 'published' | 'archived'
+export type BillStatus =
+  | 'draft'
+  | 'published'
+  | 'partially_paid'
+  | 'paid'
+  | 'archived'
 
 export type Json =
   | string
@@ -17,6 +22,9 @@ export type BillEventType =
   | 'archived'
   | 'duplicated'
   | 'deleted'
+  | 'payment_added'
+  | 'payment_updated'
+  | 'payment_deleted'
 
 export interface Database {
   public: {
@@ -213,6 +221,47 @@ export interface Database {
           },
         ]
       }
+      payments: {
+        Row: {
+          id: string
+          bill_id: string
+          amount: number
+          payment_date: string
+          payment_method: string
+          reference: string | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          bill_id: string
+          amount: number
+          payment_date?: string
+          payment_method?: string
+          reference?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          bill_id?: string
+          amount?: number
+          payment_date?: string
+          payment_method?: string
+          reference?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'payments_bill_id_fkey'
+            columns: ['bill_id']
+            isOneToOne: false
+            referencedRelation: 'bills'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -229,3 +278,6 @@ export type BillingConfigRow =
 export type BillRow = Database['public']['Tables']['bills']['Row']
 export type BillInsert = Database['public']['Tables']['bills']['Insert']
 export type BillEventRow = Database['public']['Tables']['bill_events']['Row']
+export type PaymentRow = Database['public']['Tables']['payments']['Row']
+export type PaymentInsert = Database['public']['Tables']['payments']['Insert']
+export type PaymentUpdate = Database['public']['Tables']['payments']['Update']

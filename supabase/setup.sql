@@ -94,13 +94,29 @@ create table if not exists public.bill_events (
   created_at timestamptz not null default now()
 );
 
+alter type public.bill_status add value if not exists 'partially_paid';
+alter type public.bill_status add value if not exists 'paid';
+
+create table if not exists public.payments (
+  id uuid primary key default gen_random_uuid(),
+  bill_id uuid not null references public.bills (id) on delete cascade,
+  amount numeric(12, 2) not null check (amount > 0),
+  payment_date date not null default current_date,
+  payment_method text not null default 'bank_transfer',
+  reference text,
+  notes text,
+  created_at timestamptz not null default now()
+);
+
 -- =============================================================================
 -- Indexes
 -- =============================================================================
 
-create unique index if not exists bills_one_published_per_month_idx
+drop index if exists public.bills_one_published_per_month_idx;
+
+create unique index if not exists bills_one_active_per_month_idx
   on public.bills (property_id, billing_month)
-  where status = 'published';
+  where status in ('published', 'partially_paid', 'paid');
 
 create index if not exists bills_property_status_month_idx
   on public.bills (property_id, status, billing_month desc);
@@ -110,6 +126,9 @@ create index if not exists bills_property_month_idx
 
 create index if not exists bill_events_bill_id_created_idx
   on public.bill_events (bill_id, created_at desc);
+
+create index if not exists payments_bill_id_idx
+  on public.payments (bill_id, payment_date desc);
 
 -- =============================================================================
 -- updated_at trigger
@@ -140,6 +159,7 @@ alter table public.properties enable row level security;
 alter table public.billing_configuration enable row level security;
 alter table public.bills enable row level security;
 alter table public.bill_events enable row level security;
+alter table public.payments enable row level security;
 
 drop policy if exists "Public read properties" on public.properties;
 drop policy if exists "Public read billing configuration" on public.billing_configuration;
@@ -149,6 +169,10 @@ drop policy if exists "Public update bills" on public.bills;
 drop policy if exists "Public delete bills" on public.bills;
 drop policy if exists "Public read bill events" on public.bill_events;
 drop policy if exists "Public insert bill events" on public.bill_events;
+drop policy if exists "Public read payments" on public.payments;
+drop policy if exists "Public insert payments" on public.payments;
+drop policy if exists "Public update payments" on public.payments;
+drop policy if exists "Public delete payments" on public.payments;
 
 create policy "Public read properties"
   on public.properties for select
@@ -182,6 +206,23 @@ create policy "Public read bill events"
 create policy "Public insert bill events"
   on public.bill_events for insert
   with check (true);
+
+create policy "Public read payments"
+  on public.payments for select
+  using (true);
+
+create policy "Public insert payments"
+  on public.payments for insert
+  with check (true);
+
+create policy "Public update payments"
+  on public.payments for update
+  using (true)
+  with check (true);
+
+create policy "Public delete payments"
+  on public.payments for delete
+  using (true);
 
 -- =============================================================================
 -- Storage: kseb-bills
@@ -303,4 +344,5 @@ select id, slug, name from public.properties order by slug;
 select property_id, rate, discount_percent, fixed_charge from public.billing_configuration order by property_id;
 select count(*) as remaining_bills from public.bills;
 select count(*) as remaining_bill_events from public.bill_events;
+select count(*) as remaining_payments from public.payments;
 select id, name from storage.buckets where id = 'kseb-bills';

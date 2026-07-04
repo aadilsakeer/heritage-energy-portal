@@ -13,6 +13,9 @@ const labels: Record<string, string> = {
   archived: 'Archived',
   duplicated: 'Duplicated',
   deleted: 'Deleted',
+  payment_added: 'Payment Added',
+  payment_updated: 'Payment Updated',
+  payment_deleted: 'Payment Deleted',
 }
 
 interface AuditTimelineProps {

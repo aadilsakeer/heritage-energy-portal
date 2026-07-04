@@ -26,6 +26,8 @@ import {
   fetchBillHistory,
   fetchLatestPublishedBill,
 } from '@/services/billService'
+import { fetchPayments } from '@/services/paymentService'
+import { computePaymentSummary } from '@/lib/payments'
 import { notify } from '@/lib/toast'
 import { downloadInvoice } from '@/utils/downloadInvoice'
 import { formatCurrency } from '@/utils/format'
@@ -52,7 +54,13 @@ export function HomePage() {
   const latestQuery = useAsync(
     async () => {
       if (!propertyId) return null
-      return fetchLatestPublishedBill(propertyId)
+      const bill = await fetchLatestPublishedBill(propertyId)
+      if (!bill) return null
+      const payments = await fetchPayments(bill.id)
+      return {
+        bill,
+        summary: computePaymentSummary(bill.tenantTotal ?? 0, payments),
+      }
     },
     [propertyId],
     Boolean(propertyId),
@@ -93,7 +101,8 @@ export function HomePage() {
     )
   }
 
-  const latestBill = latestQuery.data
+  const latestBill = latestQuery.data?.bill ?? null
+  const latestSummary = latestQuery.data?.summary
   const history = historyQuery.data ?? []
   const hasPublishedBill = Boolean(latestBill)
   const savings = hasPublishedBill
@@ -119,7 +128,7 @@ export function HomePage() {
         >
           {latestBill ? (
             <HeroCard
-              bill={toCurrentBill(latestBill, property?.label)}
+              bill={toCurrentBill(latestBill, property?.label, latestSummary)}
               onDownloadInvoice={() => {
                 if (!property) return
                 void downloadInvoice(latestBill, property)

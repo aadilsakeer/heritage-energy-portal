@@ -57,6 +57,17 @@ export interface BillEvent {
   createdAt: string
 }
 
+export interface Payment {
+  id: string
+  billId: string
+  amount: number
+  paymentDate: string
+  paymentMethod: string
+  reference: string | null
+  notes: string | null
+  createdAt: string
+}
+
 export interface CurrentBill {
   id: string
   month: string
@@ -65,6 +76,10 @@ export interface CurrentBill {
   status: BillStatus
   currency: string
   propertyLabel?: string
+  billAmount: number
+  totalPaid: number
+  balance: number
+  paymentPercentage: number
 }
 
 export interface SavingsSummary {

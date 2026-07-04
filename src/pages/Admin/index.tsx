@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
+import { flushSync } from 'react-dom'
 import {
   Archive,
   Copy,
@@ -8,6 +9,7 @@ import {
 import { motion } from 'framer-motion'
 import { AuditTimeline } from '@/components/admin/AuditTimeline'
 import { BillReviewForm } from '@/components/admin/BillReviewForm'
+import { PaymentSection } from '@/components/admin/PaymentSection'
 import { toFormValues } from '@/lib/extractionSchema'
 
 import { EmptyState } from '@/components/cards/EmptyState'
@@ -22,6 +24,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useProperty } from '@/context/PropertyContext'
 import { useAsync } from '@/hooks/useAsync'
 import { notify } from '@/lib/toast'
+import { billStatusVariant } from '@/lib/billStatus'
+import { canRecordPayments, formatBillStatus } from '@/lib/payments'
 import type { ReviewFormValues } from '@/lib/extractionSchema'
 import {
   archiveBill,
@@ -36,17 +40,10 @@ import {
 } from '@/services/billService'
 import { fetchBillEvents } from '@/services/eventService'
 import { fetchBillingConfiguration } from '@/services/propertyService'
-
-import type { BillStatus } from '@/types'
+import { fetchPayments } from '@/services/paymentService'
 
 import { formatDateTime } from '@/utils/format'
 import { toUploadItem } from '@/utils/mappers'
-
-const statusVariant: Record<BillStatus, 'success' | 'warning' | 'outline'> = {
-  published: 'success',
-  draft: 'warning',
-  archived: 'outline',
-}
 
 export function AdminPage() {
   const {
@@ -96,13 +93,25 @@ export function AdminPage() {
     [propertyId],
     Boolean(propertyId),
   )
+  const {
+    data: payments,
+    isLoading: paymentsLoading,
+    reload: reloadPayments,
+  } = useAsync(
+    async () => (activeBillId ? fetchPayments(activeBillId) : []),
+    [activeBillId],
+    Boolean(activeBillId),
+  )
 
   const refreshAll = useCallback(async () => {
-    await reloadUploads()
-    await reloadBill()
-    await reloadEvents()
-  }, [reloadUploads, reloadBill, reloadEvents])
-
+    await Promise.all([
+      reloadUploads(),
+      reloadConfig(),
+      reloadBill(),
+      reloadEvents(),
+      reloadPayments(),
+    ])
+  }, [reloadUploads, reloadConfig, reloadBill, reloadEvents, reloadPayments])
 
   const handleUpload = useCallback(
     async (file: File) => {
@@ -118,7 +127,6 @@ export function AdminPage() {
 
       try {
         const draft = await uploadMeterReading({ propertyId, file })
-        setActiveBillId(draft.id)
         setProgress(45)
         setProgressLabel('Running AI extraction…')
 
@@ -127,11 +135,19 @@ export function AdminPage() {
 
         setProgress(75)
         setProgressLabel('Saving draft…')
-        await saveAiExtraction(draft.id, extraction)
+        const savedBill = await saveAiExtraction(draft.id, extraction)
+
+        flushSync(() => {
+          setActiveBillId(savedBill.id)
+        })
+
+        setProgress(90)
+        setProgressLabel('Loading review…')
+        await refreshAll()
+
         setProgress(100)
         setProgressLabel('Complete')
         notify.success('Bill extracted and saved as draft')
-        await refreshAll()
       } catch (err) {
         const message =
           err instanceof Error ? err.message : 'Upload or AI extraction failed'
@@ -145,7 +161,6 @@ export function AdminPage() {
   )
 
   const initialValues = useMemo(() => {
-
     if (!activeBill) return null
     if (activeBill.validatedJson) return toFormValues(activeBill.validatedJson)
     if (activeBill.aiJson) return toFormValues(activeBill.aiJson)
@@ -204,13 +219,17 @@ export function AdminPage() {
     }
   }
 
-  const isLoading =
-    propertiesLoading || uploadsLoading || configLoading || billLoading
+  const isPageLoading = propertiesLoading || uploadsLoading || configLoading
+  const isReviewLoading =
+    Boolean(activeBillId) && (billLoading || configLoading)
   const error = propertiesError ?? uploadsError ?? configError
   const uploads = (uploadRows ?? []).map(toUploadItem)
+  const showReview = Boolean(activeBill && initialValues && config)
+  const showPayments = Boolean(
+    activeBill && (canRecordPayments(activeBill.status) || (payments?.length ?? 0) > 0),
+  )
 
-
-  if (isLoading) {
+  if (isPageLoading && !activeBillId) {
     return (
       <PageContainer>
         <LoadingSkeleton variant="page" />
@@ -227,7 +246,6 @@ export function AdminPage() {
             void refreshProperties()
             void reloadUploads()
             void reloadConfig()
-
           }}
         />
       </PageContainer>
@@ -257,11 +275,15 @@ export function AdminPage() {
           onUpload={handleUpload}
         />
 
-        {activeBill && initialValues && config ? (
+        {activeBillId && isReviewLoading ? (
+          <LoadingSkeleton variant="page" />
+        ) : null}
+
+        {showReview && activeBill && initialValues && config ? (
           <section className="space-y-4">
             <SectionHeader
               title="Review & Publish"
-              description={`${activeBill.pdfFileName ?? 'Draft bill'} · ${activeBill.status}`}
+              description={`${activeBill.pdfFileName ?? 'Draft bill'} · ${formatBillStatus(activeBill.status)}`}
             />
             <BillReviewForm
               key={activeBill.id}
@@ -294,7 +316,10 @@ export function AdminPage() {
                 onClick={() =>
                   void runAction(async () => {
                     const copy = await duplicateBill(activeBill.id)
-                    setActiveBillId(copy.id)
+                    flushSync(() => {
+                      setActiveBillId(copy.id)
+                    })
+                    await refreshAll()
                   }, 'Bill duplicated')
                 }
               >
@@ -309,6 +334,7 @@ export function AdminPage() {
                     void runAction(async () => {
                       await deleteDraftBill(activeBill.id)
                       setActiveBillId(null)
+                      await refreshAll()
                     }, 'Draft deleted')
                   }
                 >
@@ -319,8 +345,16 @@ export function AdminPage() {
             </div>
             <SectionHeader title="Audit Timeline" />
             <AuditTimeline events={events ?? []} />
-
           </section>
+        ) : null}
+
+        {showPayments && activeBill ? (
+          <PaymentSection
+            bill={activeBill}
+            payments={payments ?? []}
+            isLoading={paymentsLoading}
+            onChange={refreshAll}
+          />
         ) : null}
 
         <section>
@@ -346,7 +380,12 @@ export function AdminPage() {
                   <button
                     type="button"
                     className="w-full text-left"
-                    onClick={() => setActiveBillId(upload.id)}
+                    onClick={() => {
+                      flushSync(() => {
+                        setActiveBillId(upload.id)
+                      })
+                      void refreshAll()
+                    }}
                   >
                     <Card className="border-border/50 bg-card/80 shadow-soft backdrop-blur-xl transition-shadow hover:shadow-md">
                       <CardContent className="flex items-center gap-4 p-4 sm:p-5">
@@ -362,10 +401,10 @@ export function AdminPage() {
                           </p>
                         </div>
                         <Badge
-                          variant={statusVariant[upload.status]}
+                          variant={billStatusVariant[upload.status]}
                           className="capitalize"
                         >
-                          {upload.status}
+                          {formatBillStatus(upload.status)}
                         </Badge>
                       </CardContent>
                     </Card>

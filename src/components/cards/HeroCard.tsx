@@ -4,7 +4,8 @@ import { Link } from 'react-router-dom'
 import type { CurrentBill } from '@/types'
 import { ROUTES } from '@/constants'
 import { easeOut } from '@/lib/motion'
-import { formatDate } from '@/utils/format'
+import { formatBillStatus } from '@/lib/payments'
+import { formatCurrency, formatDate } from '@/utils/format'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -49,15 +50,35 @@ export function HeroCard({ bill, onDownloadInvoice }: HeroCardProps) {
                 variant="secondary"
                 className="border-0 bg-white/15 capitalize text-primary-foreground backdrop-blur-md"
               >
-                {bill.status}
+                {formatBillStatus(bill.status)}
               </Badge>
             </div>
 
             <div>
-              <p className="text-sm text-primary-foreground/75">Amount Due</p>
+              <p className="text-sm text-primary-foreground/75">Remaining</p>
               <p className="mt-1 text-4xl font-semibold tracking-tight sm:text-5xl">
-                <CountUp value={bill.amountDue} currency={bill.currency} />
+                <CountUp value={bill.balance} currency={bill.currency} />
               </p>
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <div className="rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-md">
+                  <p className="text-xs text-primary-foreground/70">Bill Amount</p>
+                  <p className="mt-0.5 text-sm font-medium">
+                    {formatCurrency(bill.billAmount, bill.currency)}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-md">
+                  <p className="text-xs text-primary-foreground/70">Paid</p>
+                  <p className="mt-0.5 text-sm font-medium">
+                    {formatCurrency(bill.totalPaid, bill.currency)}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-md">
+                  <p className="text-xs text-primary-foreground/70">Progress</p>
+                  <p className="mt-0.5 text-sm font-medium">
+                    {bill.paymentPercentage.toFixed(0)}%
+                  </p>
+                </div>
+              </div>
               <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-sm text-primary-foreground/90 backdrop-blur-md">
                 <CalendarDays className="h-4 w-4" aria-hidden="true" />
                 <span>Due {formatDate(bill.dueDate)}</span>

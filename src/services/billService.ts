@@ -10,6 +10,7 @@ import { logBillEvent } from '@/services/eventService'
 import { fetchBillingConfiguration } from '@/services/propertyService'
 import type { Bill, BillStatus } from '@/types'
 import type { BillInsert, Json } from '@/types/database'
+import { PAYABLE_STATUSES } from '@/lib/payments'
 import {
   billingMonthFromDate,
   mapBill,
@@ -23,7 +24,7 @@ export async function fetchLatestPublishedBill(
     .from('bills')
     .select('*')
     .eq('property_id', propertyId)
-    .eq('status', 'published')
+    .in('status', PAYABLE_STATUSES)
     .order('billing_month', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -38,7 +39,7 @@ export async function fetchBillHistory(
   let query = supabase
     .from('bills')
     .select('*')
-    .in('status', ['published', 'archived'])
+    .in('status', [...PAYABLE_STATUSES, 'archived'])
     .order('billing_month', { ascending: false })
 
   if (propertyId) query = query.eq('property_id', propertyId)
@@ -55,7 +56,7 @@ export async function fetchPublishedBills(
     .from('bills')
     .select('*')
     .eq('property_id', propertyId)
-    .eq('status', 'published')
+    .in('status', PAYABLE_STATUSES)
     .order('billing_month', { ascending: true })
 
   if (error) throw new Error(getSupabaseErrorMessage(error))
@@ -248,7 +249,7 @@ export async function publishBill(billId: string): Promise<Bill> {
     throw new Error('Bill must be calculated before publishing')
   }
 
-  const wasPublished = bill.status === 'published'
+  const wasPublished = PAYABLE_STATUSES.includes(bill.status)
   const invoiceNumber =
     bill.invoiceNumber ??
     `HS-${bill.billingMonth.slice(0, 7).replace('-', '')}-${bill.id.slice(0, 8).toUpperCase()}`
@@ -259,7 +260,7 @@ export async function publishBill(billId: string): Promise<Bill> {
       .update({ status: 'archived' satisfies BillStatus })
       .eq('property_id', bill.propertyId)
       .eq('billing_month', bill.billingMonth)
-      .eq('status', 'published')
+      .in('status', PAYABLE_STATUSES)
       .neq('id', billId)
 
     if (archiveError) throw new Error(getSupabaseErrorMessage(archiveError))

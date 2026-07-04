@@ -1,4 +1,5 @@
 import type { ExtractionResult } from '@/lib/extractionSchema'
+import { computePaymentSummary, type PaymentSummary } from '@/lib/payments'
 import type {
   Bill,
   BillBreakdown,
@@ -6,6 +7,7 @@ import type {
   BillingConfiguration,
   CurrentBill,
   HistoryItem,
+  Payment,
   Property,
   UploadItem,
 } from '@/types'
@@ -14,6 +16,7 @@ import type {
   BillRow,
   BillingConfigRow,
   Json,
+  PaymentRow,
   PropertyRow,
 } from '@/types/database'
 import { formatMonthLabel } from '@/utils/format'
@@ -87,18 +90,39 @@ export function mapBillEvent(row: BillEventRow): BillEvent {
   }
 }
 
+export function mapPayment(row: PaymentRow): Payment {
+  return {
+    id: row.id,
+    billId: row.bill_id,
+    amount: Number(row.amount),
+    paymentDate: row.payment_date,
+    paymentMethod: row.payment_method,
+    reference: row.reference,
+    notes: row.notes,
+    createdAt: row.created_at,
+  }
+}
+
 export function toCurrentBill(
   bill: Bill,
   propertyLabel?: string,
+  paymentSummary?: PaymentSummary,
 ): CurrentBill {
+  const billAmount = bill.tenantTotal ?? 0
+  const summary = paymentSummary ?? computePaymentSummary(billAmount, [])
+
   return {
     id: bill.id,
     month: formatMonthLabel(bill.billingMonth),
-    amountDue: bill.tenantTotal ?? 0,
+    amountDue: summary.balance,
     dueDate: bill.dueDate ?? bill.billingMonth,
     status: bill.status,
     currency: '₹',
     propertyLabel,
+    billAmount: summary.billAmount,
+    totalPaid: summary.totalPaid,
+    balance: summary.balance,
+    paymentPercentage: summary.paymentPercentage,
   }
 }
 

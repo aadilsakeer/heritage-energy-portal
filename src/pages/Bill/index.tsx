@@ -26,6 +26,11 @@ import {
   fetchBillById,
   fetchLatestPublishedBill,
 } from '@/services/billService'
+import { fetchPayments } from '@/services/paymentService'
+import { computePaymentSummary, formatBillStatus } from '@/lib/payments'
+import { PaymentHistory } from '@/components/invoice/PaymentHistory'
+import { billStatusVariant } from '@/lib/billStatus'
+import { Badge } from '@/components/ui/badge'
 import { downloadInvoice } from '@/utils/downloadInvoice'
 
 import { formatCurrency, formatEnergy, formatMonthLabel } from '@/utils/format'
@@ -44,9 +49,25 @@ export function BillPage() {
 
   const billQuery = useAsync(
     async () => {
-      if (billId) return fetchBillById(billId)
+      if (billId) {
+        const bill = await fetchBillById(billId)
+        if (!bill) return null
+        const payments = await fetchPayments(bill.id)
+        return {
+          bill,
+          payments,
+          summary: computePaymentSummary(bill.tenantTotal ?? 0, payments),
+        }
+      }
       if (!propertyId) return null
-      return fetchLatestPublishedBill(propertyId)
+      const bill = await fetchLatestPublishedBill(propertyId)
+      if (!bill) return null
+      const payments = await fetchPayments(bill.id)
+      return {
+        bill,
+        payments,
+        summary: computePaymentSummary(bill.tenantTotal ?? 0, payments),
+      }
     },
     [billId, propertyId],
     Boolean(billId || propertyId),
@@ -77,7 +98,9 @@ export function BillPage() {
     )
   }
 
-  const bill = billQuery.data
+  const bill = billQuery.data?.bill ?? null
+  const payments = billQuery.data?.payments ?? []
+  const paymentSummary = billQuery.data?.summary
   const billProperty =
     properties.find((item) => item.id === bill?.propertyId) ?? property
 
@@ -172,7 +195,13 @@ export function BillPage() {
                 {formatMonthLabel(bill.billingMonth)}
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                {billProperty?.label ?? 'Property'} · {bill.status}
+                {billProperty?.label ?? 'Property'} ·{' '}
+                <Badge
+                  variant={billStatusVariant[bill.status]}
+                  className="ml-1 capitalize"
+                >
+                  {formatBillStatus(bill.status)}
+                </Badge>
               </p>
             </div>
             {billProperty ? (
@@ -233,6 +262,14 @@ export function BillPage() {
               />
             </div>
           </section>
+
+          {paymentSummary ? (
+            <PaymentHistory
+              status={bill.status}
+              summary={paymentSummary}
+              payments={payments}
+            />
+          ) : null}
         </motion.div>
       </AnimatePresence>
     </PageContainer>
