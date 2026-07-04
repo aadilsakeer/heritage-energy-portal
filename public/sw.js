@@ -1,4 +1,5 @@
-const CACHE_NAME = 'heritage-solar-v1'
+const CACHE_NAME = 'heritage-solar-v1.0.1'
+
 const PRECACHE = ['/', '/index.html', '/manifest.webmanifest', '/favicon.svg']
 
 self.addEventListener('install', (event) => {

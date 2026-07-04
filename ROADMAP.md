@@ -74,4 +74,10 @@ Status: COMPLETE
 
 ## Release
 
-Heritage Solar v1.0 — production ready.
+Heritage Solar v1.0.1 — production ready.
+
+- Environment validation (no placeholders)
+- Supabase `kseb-bills` storage bucket
+- Gemini retry + timeout
+- Live data on all pages
+- Invoice, analytics, history, admin workflow

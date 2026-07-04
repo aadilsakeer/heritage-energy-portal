@@ -1,10 +1,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { env } from '@/lib/env'
 import {
   parseGeminiJson,
   type ExtractionResult,
 } from '@/lib/extractionSchema'
 
 const MODEL = 'gemini-2.5-flash'
+const MAX_ATTEMPTS = 3
+const TIMEOUT_MS = 45_000
 
 const EXTRACTION_PROMPT = `Extract electricity bill fields from this document.
 Return ONLY strict JSON with these keys:
@@ -12,16 +15,6 @@ generation, import_units, export_units, fixed_charge, security_deposit, arrears,
 Use numbers for numeric fields and ISO dates (YYYY-MM-DD) for dates.
 Use null when a value is missing.
 No markdown. No explanation.`
-
-function getApiKey(): string {
-  const key = import.meta.env.VITE_GEMINI_API_KEY
-  if (!key) {
-    throw new Error(
-      'Gemini API key is not configured. Set VITE_GEMINI_API_KEY in your environment.',
-    )
-  }
-  return key
-}
 
 function fileToGenerativePart(base64: string, mimeType: string) {
   return {
@@ -43,16 +36,28 @@ async function fileToBase64(file: File): Promise<string> {
   return btoa(binary)
 }
 
-export async function extractBillFields(
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      reject(new Error(`Gemini request timed out after ${ms / 1000}s`))
+    }, ms)
+
+    promise
+      .then((value) => {
+        window.clearTimeout(timer)
+        resolve(value)
+      })
+      .catch((error: unknown) => {
+        window.clearTimeout(timer)
+        reject(error)
+      })
+  })
+}
+
+async function requestExtraction(
   file: File,
 ): Promise<ExtractionResult> {
-  const allowed = ['application/pdf', 'image/png', 'image/jpeg']
-  if (!allowed.includes(file.type)) {
-    throw new Error('Only PDF, PNG, and JPEG files are supported')
-  }
-
-  const apiKey = getApiKey()
-  const genAI = new GoogleGenerativeAI(apiKey)
+  const genAI = new GoogleGenerativeAI(env.geminiApiKey)
   const model = genAI.getGenerativeModel({
     model: MODEL,
     generationConfig: {
@@ -62,10 +67,13 @@ export async function extractBillFields(
   })
 
   const base64 = await fileToBase64(file)
-  const result = await model.generateContent([
-    EXTRACTION_PROMPT,
-    fileToGenerativePart(base64, file.type),
-  ])
+  const result = await withTimeout(
+    model.generateContent([
+      EXTRACTION_PROMPT,
+      fileToGenerativePart(base64, file.type),
+    ]),
+    TIMEOUT_MS,
+  )
 
   const text = result.response.text()
   if (!text) {
@@ -73,4 +81,31 @@ export async function extractBillFields(
   }
 
   return parseGeminiJson(text)
+}
+
+export async function extractBillFields(
+  file: File,
+): Promise<ExtractionResult> {
+  const allowed = ['application/pdf', 'image/png', 'image/jpeg']
+  if (!allowed.includes(file.type)) {
+    throw new Error('Only PDF, PNG, and JPEG files are supported')
+  }
+
+  let lastError: unknown
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await requestExtraction(file)
+    } catch (error) {
+      lastError = error
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise((resolve) => {
+          window.setTimeout(resolve, attempt * 500)
+        })
+      }
+    }
+  }
+
+  if (lastError instanceof Error) throw lastError
+  throw new Error('Gemini extraction failed')
 }

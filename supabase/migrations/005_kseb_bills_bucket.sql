@@ -1,4 +1,4 @@
--- KSEB bill document storage
+-- Production storage bucket (idempotent for projects that already applied older migrations)
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (

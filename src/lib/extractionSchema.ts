@@ -1,15 +1,47 @@
 import { z } from 'zod'
 
+const nullableNumber = z.preprocess((value) => {
+  if (value === null || value === undefined || value === '') return null
+  if (typeof value === 'number') return value
+  if (typeof value === 'string') {
+    const normalized = value.replace(/,/g, '').trim()
+    if (normalized === '') return null
+    const parsed = Number(normalized)
+    return Number.isFinite(parsed) ? parsed : value
+  }
+  return value
+}, z.number().nonnegative().nullable())
+
+const nullableDate = z.preprocess((value) => {
+  if (value === null || value === undefined || value === '') return null
+  if (typeof value !== 'string') return value
+  const trimmed = value.trim()
+  const isoMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})/)
+  if (isoMatch) return isoMatch[1]
+  const parsed = new Date(trimmed)
+  if (Number.isNaN(parsed.getTime())) return trimmed
+  const year = parsed.getFullYear()
+  const month = String(parsed.getMonth() + 1).padStart(2, '0')
+  const day = String(parsed.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}, z.string().nullable())
+
+const nullableText = z.preprocess((value) => {
+  if (value === null || value === undefined) return null
+  const text = String(value).trim()
+  return text === '' ? null : text
+}, z.string().nullable())
+
 export const extractionSchema = z.object({
-  generation: z.number().nonnegative().nullable(),
-  import_units: z.number().nonnegative().nullable(),
-  export_units: z.number().nonnegative().nullable(),
-  fixed_charge: z.number().nonnegative().nullable(),
-  security_deposit: z.number().nonnegative().nullable(),
-  arrears: z.number().nonnegative().nullable(),
-  bill_date: z.string().nullable(),
-  due_date: z.string().nullable(),
-  consumer_number: z.string().nullable(),
+  generation: nullableNumber,
+  import_units: nullableNumber,
+  export_units: nullableNumber,
+  fixed_charge: nullableNumber,
+  security_deposit: nullableNumber,
+  arrears: nullableNumber,
+  bill_date: nullableDate,
+  due_date: nullableDate,
+  consumer_number: nullableText,
 })
 
 export type ExtractionResult = z.infer<typeof extractionSchema>
@@ -58,7 +90,6 @@ export function toFormValues(
 }
 
 export function parseGeminiJson(raw: string): ExtractionResult {
-
   const cleaned = raw
     .trim()
     .replace(/^```json\s*/i, '')

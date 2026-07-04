@@ -2,9 +2,10 @@ import { calculateBill } from '@/lib/calculations'
 import type { ExtractionResult, ReviewFormValues } from '@/lib/extractionSchema'
 import {
   getSupabaseErrorMessage,
-  METER_READINGS_BUCKET,
+  KSEB_BILLS_BUCKET,
   supabase,
 } from '@/lib/supabase'
+
 import { logBillEvent } from '@/services/eventService'
 import { fetchBillingConfiguration } from '@/services/propertyService'
 import type { Bill, BillStatus } from '@/types'
@@ -97,7 +98,7 @@ export async function uploadMeterReading(input: {
   )
 
   const { error: uploadError } = await supabase.storage
-    .from(METER_READINGS_BUCKET)
+    .from(KSEB_BILLS_BUCKET)
     .upload(objectPath, input.file, {
       cacheControl: '3600',
       upsert: false,
@@ -121,7 +122,7 @@ export async function uploadMeterReading(input: {
     .single()
 
   if (error) {
-    await supabase.storage.from(METER_READINGS_BUCKET).remove([objectPath])
+    await supabase.storage.from(KSEB_BILLS_BUCKET).remove([objectPath])
     throw new Error(getSupabaseErrorMessage(error))
   }
 
@@ -345,15 +346,20 @@ export async function deleteDraftBill(billId: string): Promise<void> {
 
   await logBillEvent(billId, 'deleted')
 
+  if (bill.pdfPath) {
+    await supabase.storage.from(KSEB_BILLS_BUCKET).remove([bill.pdfPath])
+  }
+
   const { error } = await supabase.from('bills').delete().eq('id', billId)
   if (error) throw new Error(getSupabaseErrorMessage(error))
 }
+
 
 export async function getPdfDownloadUrl(
   pdfPath: string,
 ): Promise<string | null> {
   const { data, error } = await supabase.storage
-    .from(METER_READINGS_BUCKET)
+    .from(KSEB_BILLS_BUCKET)
     .createSignedUrl(pdfPath, 60 * 10)
 
   if (error) throw new Error(getSupabaseErrorMessage(error))

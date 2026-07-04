@@ -1,6 +1,6 @@
 import { APP_NAME } from '@/constants'
 import type { Bill, Property } from '@/types'
-import { formatCurrency, formatDate, formatMonthLabel } from '@/utils/format'
+import { formatCurrency, formatDate, formatDateTime, formatMonthLabel } from '@/utils/format'
 
 export async function generateInvoicePdf(
   bill: Bill,
@@ -14,21 +14,29 @@ export async function generateInvoicePdf(
   const doc = new jsPDF()
   const margin = 20
   let y = 24
+  const generatedAt = new Date().toISOString()
 
   const invoiceNumber =
     bill.invoiceNumber ??
     `HS-${bill.billingMonth.slice(0, 7).replace('-', '')}-${bill.id.slice(0, 8).toUpperCase()}`
 
+  doc.setFillColor(15, 138, 95)
+  doc.roundedRect(margin, y - 8, 12, 12, 3, 3, 'F')
+  doc.setDrawColor(247, 251, 248)
+  doc.setLineWidth(1.2)
+  doc.circle(margin + 6, y - 4, 2.2, 'S')
+  doc.line(margin + 2.5, y + 1, margin + 9.5, y + 1)
+
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(20)
   doc.setTextColor(16, 120, 90)
-  doc.text(APP_NAME, margin, y)
+  doc.text(APP_NAME, margin + 16, y)
 
   doc.setFontSize(11)
   doc.setTextColor(80)
   doc.setFont('helvetica', 'normal')
   y += 8
-  doc.text('Solar Billing Invoice', margin, y)
+  doc.text('Solar Billing Invoice', margin + 16, y)
 
   y += 14
   doc.setFont('helvetica', 'bold')
@@ -39,27 +47,12 @@ export async function generateInvoicePdf(
 
   y += 8
   doc.text(`Month: ${formatMonthLabel(bill.billingMonth)}`, margin, y)
-  doc.text(
-    `Generated: ${formatDate(new Date().toISOString().slice(0, 10))}`,
-    120,
-    y,
-  )
+  doc.text(`Bill Date: ${bill.billDate ? formatDate(bill.billDate) : '—'}`, 120, y)
 
   y += 8
-  doc.text(
-    `Bill Date: ${bill.billDate ? formatDate(bill.billDate) : '—'}`,
-    margin,
-    y,
-  )
-  doc.text(
-    `Due Date: ${bill.dueDate ? formatDate(bill.dueDate) : '—'}`,
-    120,
-    y,
-  )
-
+  doc.text(`Due Date: ${bill.dueDate ? formatDate(bill.dueDate) : '—'}`, margin, y)
   if (bill.consumerNumber) {
-    y += 8
-    doc.text(`Consumer No: ${bill.consumerNumber}`, margin, y)
+    doc.text(`Consumer No: ${bill.consumerNumber}`, 120, y)
   }
 
   y += 14
@@ -103,7 +96,7 @@ export async function generateInvoicePdf(
   doc.setFontSize(9)
   doc.setTextColor(110)
   doc.text(
-    `${APP_NAME} · Transparent solar billing · Generated for tenant records`,
+    `${APP_NAME} · Transparent solar billing · Generated ${formatDateTime(generatedAt)}`,
     margin,
     y,
   )

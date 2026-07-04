@@ -1,17 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
+import { env } from '@/lib/env'
 import type { Database } from '@/types/database'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
-
 export const supabase = createClient<Database>(
-  supabaseUrl ?? 'https://placeholder.supabase.co',
-  supabaseAnonKey ?? 'placeholder-key',
+  env.supabaseUrl,
+  env.supabaseAnonKey,
 )
 
-export const METER_READINGS_BUCKET = 'meter-readings'
+/** KSEB bill originals (PDF / PNG / JPEG) */
+export const KSEB_BILLS_BUCKET = 'kseb-bills'
 
 export function getSupabaseErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message
