@@ -62,6 +62,7 @@ export interface Database {
           slug: string
           name: string
           short_name: string
+          consumer_number: string | null
           created_at: string
         }
         Insert: {
@@ -69,6 +70,7 @@ export interface Database {
           slug: string
           name: string
           short_name: string
+          consumer_number?: string | null
           created_at?: string
         }
         Update: {
@@ -76,6 +78,7 @@ export interface Database {
           slug?: string
           name?: string
           short_name?: string
+          consumer_number?: string | null
           created_at?: string
         }
         Relationships: []

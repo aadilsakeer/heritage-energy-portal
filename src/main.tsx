@@ -1,10 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from '@/App'
-import { registerServiceWorker } from '@/lib/registerServiceWorker'
+import { unregisterServiceWorkers } from '@/lib/unregisterServiceWorkers'
 import '@/index.css'
 
-registerServiceWorker()
+void unregisterServiceWorkers()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

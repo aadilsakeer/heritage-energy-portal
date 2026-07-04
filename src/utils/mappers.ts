@@ -38,6 +38,7 @@ export function mapProperty(row: PropertyRow): Property {
     slug: row.slug,
     label: row.name,
     shortLabel: row.short_name,
+    consumerNumber: row.consumer_number,
   }
 }
 
@@ -216,13 +217,20 @@ export function toHistoryItem(
   }
 }
 
-export function toUploadItem(bill: Bill): UploadItem {
+export function toUploadItem(
+  bill: Bill,
+  property?: Property | null,
+): UploadItem {
   return {
     id: bill.id,
     fileName: bill.pdfFileName ?? 'Untitled upload',
     uploadedAt: bill.createdAt,
     status: bill.status,
     propertyId: bill.propertyId,
+    propertyLabel: property?.label,
+    propertySlug: property?.slug,
+    billingMonth: bill.billingMonth,
+    consumerNumber: bill.consumerNumber,
   }
 }
 

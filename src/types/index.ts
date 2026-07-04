@@ -20,6 +20,7 @@ export interface Property {
   slug: string
   label: string
   shortLabel: string
+  consumerNumber: string | null
 }
 
 export interface BillingConfiguration {
@@ -190,6 +191,10 @@ export interface UploadItem {
   uploadedAt: string
   status: BillStatus
   propertyId: string
+  propertyLabel?: string
+  propertySlug?: string
+  billingMonth: string
+  consumerNumber: string | null
 }
 
 export interface AnalyticsSummary {

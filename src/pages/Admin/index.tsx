@@ -6,10 +6,11 @@ import {
   FileText,
   Trash2,
 } from 'lucide-react'
-import { motion } from 'framer-motion'
 import { AuditTimeline } from '@/components/admin/AuditTimeline'
 import { BillReviewForm } from '@/components/admin/BillReviewForm'
 import { CreditSection } from '@/components/admin/CreditSection'
+import { RecentUploadCard } from '@/components/admin/RecentUploadCard'
+import { UploadSuccessCard } from '@/components/admin/UploadSuccessCard'
 import { PaymentRequestsSection } from '@/components/admin/PaymentRequestsSection'
 import { PaymentSection } from '@/components/admin/PaymentSection'
 import { toFormValues } from '@/lib/extractionSchema'
@@ -20,17 +21,17 @@ import { LoadingSkeleton } from '@/components/cards/LoadingSkeleton'
 import { UploadCard } from '@/components/cards/UploadCard'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { SectionHeader } from '@/components/layout/SectionHeader'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useNotifications } from '@/context/NotificationContext'
+import { useRefresh } from '@/context/RefreshContext'
 import { useProperty } from '@/context/PropertyContext'
+import { resolvePropertyFromConsumerNumber } from '@/lib/propertyDetection'
 import { useAsync } from '@/hooks/useAsync'
 import { notify } from '@/lib/toast'
-import { billStatusVariant } from '@/lib/billStatus'
 import { canRecordPayments, formatBillStatus } from '@/lib/payments'
 import type { ReviewFormValues } from '@/lib/extractionSchema'
+import type { Bill, Property } from '@/types'
 import {
   archiveBill,
   deleteDraftBill,
@@ -47,20 +48,24 @@ import { fetchBillingConfiguration } from '@/services/propertyService'
 import { fetchPayments } from '@/services/paymentService'
 import { fetchCreditsForProperty } from '@/services/creditService'
 import { fetchPendingPaymentRequests } from '@/services/paymentRequestService'
-
-import { formatDateTime } from '@/utils/format'
 import { toUploadItem } from '@/utils/mappers'
 
 export function AdminPage() {
   const {
     property,
     propertyId,
+    properties,
+    setPropertyId,
     isLoading: propertiesLoading,
     error: propertiesError,
     refreshProperties,
   } = useProperty()
 
   const [activeBillId, setActiveBillId] = useState<string | null>(null)
+  const [lastUpload, setLastUpload] = useState<{
+    property: Property
+    bill: Bill
+  } | null>(null)
   const [isBusy, setIsBusy] = useState(false)
   const [progress, setProgress] = useState(0)
   const [progressLabel, setProgressLabel] = useState('')
@@ -69,6 +74,7 @@ export function AdminPage() {
   const [isPublishing, setIsPublishing] = useState(false)
   const [publishValues, setPublishValues] = useState<ReviewFormValues | null>(null)
   const { refresh: refreshNotifications } = useNotifications()
+  const { triggerRefresh } = useRefresh()
 
   const {
     data: uploadRows,
@@ -136,6 +142,7 @@ export function AdminPage() {
       reloadPaymentRequests(),
       refreshNotifications(),
     ])
+    triggerRefresh()
   }, [
     reloadUploads,
     reloadConfig,
@@ -145,27 +152,50 @@ export function AdminPage() {
     reloadCredits,
     reloadPaymentRequests,
     refreshNotifications,
+    triggerRefresh,
   ])
 
   const handleUpload = useCallback(
     async (file: File) => {
-      if (!propertyId) {
-        setUploadError('Select a property before uploading.')
-        return
-      }
-
       setIsBusy(true)
       setUploadError(null)
-      setProgress(10)
-      setProgressLabel('Uploading PDF…')
+      setProgress(5)
+      setProgressLabel('Running AI extraction…')
 
       try {
-        const draft = await uploadMeterReading({ propertyId, file })
-        setProgress(45)
-        setProgressLabel('Running AI extraction…')
-
         const { extractBillFields } = await import('@/services/geminiService')
         const extraction = await extractBillFields(file)
+
+        setProgress(25)
+        setProgressLabel('Detecting property…')
+
+        let resolvedProperty = resolvePropertyFromConsumerNumber(
+          extraction.consumer_number,
+          properties,
+        )
+
+        if (!resolvedProperty && propertyId) {
+          resolvedProperty =
+            properties.find((item) => item.id === propertyId) ?? null
+        }
+
+        if (!resolvedProperty) {
+          throw new Error(
+            'Unknown property — select Home or Heritage Building manually, then upload again.',
+          )
+        }
+
+        flushSync(() => {
+          setPropertyId(resolvedProperty.id)
+        })
+
+        setProgress(40)
+        setProgressLabel(`Uploading for ${resolvedProperty.label}…`)
+
+        const draft = await uploadMeterReading({
+          propertyId: resolvedProperty.id,
+          file,
+        })
 
         setProgress(75)
         setProgressLabel('Saving draft…')
@@ -175,13 +205,15 @@ export function AdminPage() {
           setActiveBillId(savedBill.id)
         })
 
+        setLastUpload({ property: resolvedProperty, bill: savedBill })
+
         setProgress(90)
-        setProgressLabel('Loading review…')
+        setProgressLabel('Refreshing…')
         await refreshAll()
 
         setProgress(100)
         setProgressLabel('Complete')
-        notify.success('Bill extracted and saved as draft')
+        notify.success(`Bill uploaded for ${resolvedProperty.label}`)
       } catch (err) {
         const message =
           err instanceof Error ? err.message : 'Upload or AI extraction failed'
@@ -191,7 +223,7 @@ export function AdminPage() {
         setIsBusy(false)
       }
     },
-    [propertyId, refreshAll],
+    [properties, propertyId, setPropertyId, refreshAll],
   )
 
   const initialValues = useMemo(() => {
@@ -262,7 +294,13 @@ export function AdminPage() {
   const isReviewLoading =
     Boolean(activeBillId) && (billLoading || configLoading)
   const error = propertiesError ?? uploadsError ?? configError
-  const uploads = (uploadRows ?? []).map(toUploadItem)
+  const propertyMap = useMemo(
+    () => new Map(properties.map((item) => [item.id, item])),
+    [properties],
+  )
+  const uploads = (uploadRows ?? []).map((bill) =>
+    toUploadItem(bill, propertyMap.get(bill.propertyId)),
+  )
   const showReview = Boolean(activeBill && initialValues && config)
   const showPayments = Boolean(
     activeBill && (canRecordPayments(activeBill.status) || (payments?.length ?? 0) > 0),
@@ -318,6 +356,16 @@ export function AdminPage() {
           error={uploadError}
           onUpload={handleUpload}
         />
+
+        {lastUpload ? (
+          <UploadSuccessCard
+            property={lastUpload.property}
+            billingMonth={lastUpload.bill.billingMonth}
+            consumerNumber={lastUpload.bill.consumerNumber}
+            status={lastUpload.bill.status}
+            uploadedAt={lastUpload.bill.createdAt}
+          />
+        ) : null}
 
         {activeBillId && isReviewLoading ? (
           <LoadingSkeleton variant="page" />
@@ -424,45 +472,18 @@ export function AdminPage() {
           ) : (
             <div className="space-y-3">
               {uploads.map((upload, index) => (
-                <motion.div
+                <RecentUploadCard
                   key={upload.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.04 }}
-                >
-                  <button
-                    type="button"
-                    className="w-full text-left"
-                    onClick={() => {
-                      flushSync(() => {
-                        setActiveBillId(upload.id)
-                      })
-                      void refreshAll()
-                    }}
-                  >
-                    <Card className="border-border/50 bg-card/80 shadow-soft backdrop-blur-xl transition-shadow hover:shadow-md">
-                      <CardContent className="flex items-center gap-4 p-4 sm:p-5">
-                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-                          <FileText className="h-5 w-5" aria-hidden="true" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium text-foreground">
-                            {upload.fileName}
-                          </p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {formatDateTime(upload.uploadedAt)}
-                          </p>
-                        </div>
-                        <Badge
-                          variant={billStatusVariant[upload.status]}
-                          className="capitalize"
-                        >
-                          {formatBillStatus(upload.status)}
-                        </Badge>
-                      </CardContent>
-                    </Card>
-                  </button>
-                </motion.div>
+                  upload={upload}
+                  index={index}
+                  onSelect={() => {
+                    flushSync(() => {
+                      setActiveBillId(upload.id)
+                      setPropertyId(upload.propertyId)
+                    })
+                    void refreshAll()
+                  }}
+                />
               ))}
             </div>
           )}

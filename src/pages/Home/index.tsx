@@ -18,6 +18,7 @@ import { StatCard } from '@/components/cards/StatCard'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { useProperty } from '@/context/PropertyContext'
+import { useRefresh } from '@/context/RefreshContext'
 import { useAsync } from '@/hooks/useAsync'
 import { easeOut } from '@/lib/motion'
 import {
@@ -56,6 +57,8 @@ export function HomePage() {
     refreshProperties,
   } = useProperty()
 
+  const { refreshSignal } = useRefresh()
+
   const latestQuery = useAsync(
     async () => {
       if (!propertyId) return null
@@ -80,7 +83,7 @@ export function HomePage() {
         payments,
       }
     },
-    [propertyId],
+    [propertyId, refreshSignal],
     Boolean(propertyId),
   )
 
@@ -89,7 +92,7 @@ export function HomePage() {
       if (!propertyId) return []
       return fetchBillHistory(propertyId)
     },
-    [propertyId],
+    [propertyId, refreshSignal],
     Boolean(propertyId),
   )
 

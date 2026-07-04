@@ -33,8 +33,15 @@ create table if not exists public.properties (
   slug text not null unique,
   name text not null,
   short_name text not null,
+  consumer_number text,
   created_at timestamptz not null default now()
 );
+
+alter table public.properties add column if not exists consumer_number text;
+
+create unique index if not exists properties_consumer_number_idx
+  on public.properties (consumer_number)
+  where consumer_number is not null;
 
 create table if not exists public.billing_configuration (
   id uuid primary key default gen_random_uuid(),
@@ -403,14 +410,27 @@ create policy "Public delete kseb bills"
 -- Seed: properties
 -- =============================================================================
 
-insert into public.properties (id, slug, name, short_name)
+insert into public.properties (id, slug, name, short_name, consumer_number)
 values
-  ('11111111-1111-1111-1111-111111111111', 'home', 'Home', 'Home'),
-  ('22222222-2222-2222-2222-222222222222', 'heritage', 'Heritage Building', 'Heritage')
+  (
+    '11111111-1111-1111-1111-111111111111',
+    'home',
+    'Home',
+    'Home',
+    '1155442007288'
+  ),
+  (
+    '22222222-2222-2222-2222-222222222222',
+    'heritage',
+    'Heritage Building',
+    'Heritage',
+    '1155446031429'
+  )
 on conflict (slug) do update
 set
   name = excluded.name,
-  short_name = excluded.short_name;
+  short_name = excluded.short_name,
+  consumer_number = excluded.consumer_number;
 
 -- =============================================================================
 -- Seed: billing_configuration

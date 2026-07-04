@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ROUTES } from '@/constants'
 import { useProperty } from '@/context/PropertyContext'
+import { useRefresh } from '@/context/RefreshContext'
 import { useAsync } from '@/hooks/useAsync'
 import { notify } from '@/lib/toast'
 import { easeOut } from '@/lib/motion'
@@ -31,13 +32,15 @@ export function HistoryPage() {
     refreshProperties,
   } = useProperty()
 
+  const { refreshSignal } = useRefresh()
+
   const [search, setSearch] = useState('')
   const [filterPropertyId, setFilterPropertyId] = useState<string>('all')
 
   const historyQuery = useAsync(async () => {
     if (filterPropertyId === 'all') return fetchBillHistory()
     return fetchBillHistory(filterPropertyId)
-  }, [filterPropertyId])
+  }, [filterPropertyId, refreshSignal])
 
   const isLoading = propertiesLoading || historyQuery.isLoading
   const error = propertiesError ?? historyQuery.error

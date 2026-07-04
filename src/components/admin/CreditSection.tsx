@@ -71,11 +71,11 @@ export function CreditSection({
   }
 
   const handleCancel = async (creditId: string) => {
-    if (!auditBillId) return
     setIsSaving(true)
     try {
-      await cancelCredit(creditId, auditBillId)
-      notify.success('Credit cancelled')
+      const credit = credits.find((item) => item.id === creditId)
+      await cancelCredit(creditId, auditBillId ?? credit?.billId)
+      notify.success('Credit cancelled successfully')
       setCancelId(null)
       await onChange()
     } catch (err) {

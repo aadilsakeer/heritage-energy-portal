@@ -238,10 +238,51 @@ export async function createManualCredit(input: {
   )
 }
 
+async function fetchCreditById(creditId: string): Promise<CustomerCredit | null> {
+  const { data, error } = await supabase
+    .from('customer_credits')
+    .select('*')
+    .eq('id', creditId)
+    .maybeSingle()
+
+  if (error) throw new Error(getSupabaseErrorMessage(error))
+  return data ? mapCustomerCredit(data as CustomerCreditRow) : null
+}
+
+async function resolveAuditBillId(
+  credit: CustomerCredit,
+  auditBillId?: string | null,
+): Promise<string> {
+  if (auditBillId) return auditBillId
+  if (credit.billId) return credit.billId
+
+  const { data, error } = await supabase
+    .from('bills')
+    .select('id')
+    .eq('property_id', credit.propertyId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw new Error(getSupabaseErrorMessage(error))
+  if (!data?.id) {
+    throw new Error('No bill found to record credit cancellation in audit log')
+  }
+  return data.id
+}
+
 export async function cancelCredit(
   creditId: string,
-  auditBillId: string,
+  auditBillId?: string | null,
 ): Promise<CustomerCredit> {
+  const existing = await fetchCreditById(creditId)
+  if (!existing) throw new Error('Credit not found')
+  if (existing.status !== 'active') {
+    throw new Error('Only active credits can be cancelled')
+  }
+
+  const billIdForAudit = await resolveAuditBillId(existing, auditBillId)
+
   const { data, error } = await supabase
     .from('customer_credits')
     .update({
@@ -249,17 +290,33 @@ export async function cancelCredit(
       remaining_amount: 0,
     })
     .eq('id', creditId)
+    .eq('status', 'active')
     .select('*')
     .single()
 
   if (error) throw new Error(getSupabaseErrorMessage(error))
+  if (!data) throw new Error('Credit cancellation failed — no data returned')
 
   const credit = mapCustomerCredit(data)
-  await logBillEvent(auditBillId, 'credit_cancelled', {
+  if (credit.status !== 'cancelled' || credit.remainingAmount !== 0) {
+    throw new Error('Credit cancellation did not apply correctly')
+  }
+
+  await logBillEvent(billIdForAudit, 'credit_cancelled', {
     creditId: credit.id,
     amount: credit.amount,
     reason: credit.reason,
   })
+
+  const { createNotification } = await import('@/services/notificationService')
+  await createNotification({
+    propertyId: credit.propertyId,
+    billId: billIdForAudit,
+    type: 'credit_created',
+    title: 'Credit cancelled',
+    message: `₹${credit.amount.toFixed(2)} credit cancelled: ${credit.reason}`,
+  })
+
   return credit
 }
 

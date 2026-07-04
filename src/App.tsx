@@ -5,6 +5,7 @@ import { LoadingSkeleton } from '@/components/cards/LoadingSkeleton'
 import { AppShell } from '@/components/layout/AppShell'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { PropertyProvider } from '@/context/PropertyContext'
+import { RefreshProvider } from '@/context/RefreshContext'
 import { NotificationProvider } from '@/context/NotificationContext'
 import { ROUTES } from '@/constants'
 
@@ -25,6 +26,7 @@ export default function App() {
     <ThemeProvider>
       <PropertyProvider>
         <BrowserRouter>
+        <RefreshProvider>
         <NotificationProvider>
           <Routes>
             <Route element={<AppShell />}>
@@ -87,6 +89,7 @@ export default function App() {
             }}
           />
         </NotificationProvider>
+        </RefreshProvider>
         </BrowserRouter>
       </PropertyProvider>
     </ThemeProvider>

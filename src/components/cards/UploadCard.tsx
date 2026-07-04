@@ -89,12 +89,11 @@ export function UploadCard({
                   : 'Upload meter reading'}
             </h3>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-              {propertyLabel
-                ? `Upload a PDF, PNG, or JPEG for ${propertyLabel}.`
-                : 'Select a property, then upload a PDF or image.'}
+              Property is detected automatically from the consumer number on the bill.
+              {propertyLabel ? ` Manual selection: ${propertyLabel}.` : ''}
             </p>
 
-            {selectedFile ? (
+            {selectedFile && !isBusy ? (
               <div className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-primary/10 px-3 py-2 text-sm text-primary">
                 <FileUp className="h-4 w-4" aria-hidden="true" />
                 {selectedFile.name}
@@ -104,7 +103,7 @@ export function UploadCard({
             {isBusy ? (
               <div className="mt-5 w-full max-w-sm space-y-2">
                 <Progress value={progress} aria-label={progressLabel ?? 'Progress'} />
-                <p className="text-xs text-muted-foreground">{progress}%</p>
+                <p className="text-xs text-muted-foreground">{progress}% · {progressLabel}</p>
               </div>
             ) : null}
 
@@ -118,7 +117,7 @@ export function UploadCard({
               <Button
                 type="button"
                 onClick={open}
-                disabled={isBusy || !propertyLabel}
+                disabled={isBusy}
                 aria-label="Upload meter reading file"
               >
                 <UploadCloud className="h-4 w-4" aria-hidden="true" />

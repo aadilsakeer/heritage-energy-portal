@@ -10,6 +10,7 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { CountUp } from '@/components/ui/CountUp'
 import { useProperty } from '@/context/PropertyContext'
+import { useRefresh } from '@/context/RefreshContext'
 import { useAsync } from '@/hooks/useAsync'
 import { easeOut } from '@/lib/motion'
 import { fetchAnalytics } from '@/services/analyticsService'
@@ -40,6 +41,8 @@ export function AnalyticsPage() {
     refreshProperties,
   } = useProperty()
 
+  const { refreshSignal } = useRefresh()
+
   const analyticsQuery = useAsync(
     async () => {
       if (!propertyId) {
@@ -63,7 +66,7 @@ export function AnalyticsPage() {
       }
       return fetchAnalytics(propertyId)
     },
-    [propertyId],
+    [propertyId, refreshSignal],
     Boolean(propertyId),
   )
 

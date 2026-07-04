@@ -20,6 +20,7 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Button } from '@/components/ui/button'
 import { useProperty } from '@/context/PropertyContext'
+import { useRefresh } from '@/context/RefreshContext'
 import { useAsync } from '@/hooks/useAsync'
 import { notify } from '@/lib/toast'
 import { easeOut } from '@/lib/motion'
@@ -53,6 +54,8 @@ export function BillPage() {
     error: propertiesError,
     refreshProperties,
   } = useProperty()
+
+  const { refreshSignal, triggerRefresh } = useRefresh()
 
   const billQuery = useAsync(
     async () => {
@@ -88,7 +91,7 @@ export function BillPage() {
         summary: computePaymentSummary(bill, payments),
       }
     },
-    [billId, propertyId],
+    [billId, propertyId, refreshSignal],
     Boolean(billId || propertyId),
   )
 
@@ -319,6 +322,7 @@ export function BillPage() {
               onSubmitted={async () => {
                 await billQuery.reload()
                 await refreshNotifications()
+                triggerRefresh()
               }}
             />
           ) : null}
