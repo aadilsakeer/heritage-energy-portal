@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react'
+import { memo, type KeyboardEvent } from 'react'
 import { Building2, Home } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useProperty } from '@/context/PropertyContext'
@@ -14,13 +14,13 @@ const propertyMeta: Record<
   heritage: { Icon: Building2, emoji: '🏢' },
 }
 
-export function PropertySwitcher() {
+export const PropertySwitcher = memo(function PropertySwitcher() {
   const { properties, propertyId, setPropertyId, isLoading } = useProperty()
 
   if (isLoading) {
     return (
       <Skeleton
-        className="h-[52px] w-full rounded-2xl"
+        className="h-12 w-full rounded-2xl"
         aria-label="Loading properties"
       />
     )
@@ -34,7 +34,7 @@ export function PropertySwitcher() {
     <div
       role="tablist"
       aria-label="Select property"
-      className="relative grid grid-cols-2 gap-1.5 rounded-2xl border border-border/50 bg-muted/50 p-1.5 shadow-soft backdrop-blur-xl"
+      className="relative grid grid-cols-2 gap-2 rounded-2xl border border-border/40 bg-muted/40 p-1.5"
     >
       {properties.map((property) => {
         const isActive = property.id === propertyId
@@ -60,26 +60,26 @@ export function PropertySwitcher() {
               )
             }
             className={cn(
-              'relative z-10 flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-medium transition-colors',
+              'android-ripple relative z-10 flex min-h-12 items-center justify-center gap-2 rounded-[14px] px-3 py-3 text-sm font-medium transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               isActive
-                ? 'text-foreground'
+                ? 'text-primary'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
             {isActive ? (
               <motion.span
                 layoutId="property-segment"
-                className="absolute inset-0 rounded-xl border border-primary/10 bg-card shadow-soft"
+                className="absolute inset-0 rounded-[14px] border border-primary/15 bg-card text-primary shadow-soft"
                 transition={springSegment}
                 aria-hidden="true"
               />
             ) : null}
-            <span className="relative z-10 text-base leading-none" aria-hidden="true">
+            <span className="relative z-10 text-lg leading-none" aria-hidden="true">
               {meta.emoji}
             </span>
             <Icon className="relative z-10 hidden h-4 w-4 sm:block" aria-hidden="true" />
-            <span className="relative z-10 truncate">
+            <span className="relative z-10 truncate font-medium">
               <span className="sm:hidden">{property.shortLabel}</span>
               <span className="hidden sm:inline">{property.label}</span>
             </span>
@@ -88,7 +88,7 @@ export function PropertySwitcher() {
       })}
     </div>
   )
-}
+})
 
 function handleKeyDown(
   event: KeyboardEvent<HTMLButtonElement>,

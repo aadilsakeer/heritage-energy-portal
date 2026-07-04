@@ -1,10 +1,12 @@
 {
+  "id": "/",
   "name": "Heritage Solar",
   "short_name": "Heritage",
   "description": "Premium solar billing portal for Home and Heritage Building.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "theme_color": "#004d2c",
   "background_color": "#ffffff",

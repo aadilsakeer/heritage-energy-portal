@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Link } from 'react-router-dom'
 import { APP_NAME, BRAND, ROUTES } from '@/constants'
 import { cn } from '@/lib/utils'
@@ -11,7 +12,7 @@ interface BrandLogoProps {
   asLink?: boolean
 }
 
-export function BrandLogo({
+export const BrandLogo = memo(function BrandLogo({
   className,
   imageClassName,
   variant = 'wide',
@@ -22,12 +23,14 @@ export function BrandLogo({
     variant === 'icon' ? (
       <BrandMark className={imageClassName} />
     ) : variant === 'full' ? (
-      <div className="flex min-w-0 flex-col items-start gap-2 py-0.5">
-        <BrandMark className={cn('h-11 w-11 p-1.5', imageClassName)} />
-        <div className="min-w-0">
-          <p className="text-subtitle leading-none">{APP_NAME}</p>
+      <div className="flex min-w-0 items-center gap-3 py-0.5">
+        <BrandMark
+          className={cn('h-12 w-12 shrink-0 p-1.5 sm:h-[3rem] sm:w-[3rem]', imageClassName)}
+        />
+        <div className="min-w-0 leading-tight">
+          <p className="text-subtitle truncate">{APP_NAME}</p>
           {subtitle ? (
-            <p className="text-caption mt-1.5 truncate">{subtitle}</p>
+            <p className="text-caption mt-1 truncate font-normal">{subtitle}</p>
           ) : null}
         </div>
       </div>
@@ -63,18 +66,18 @@ export function BrandLogo({
       {inner}
     </Link>
   )
-}
+})
 
-export function BrandMark({ className }: { className?: string }) {
+export const BrandMark = memo(function BrandMark({ className }: { className?: string }) {
   return (
     <img
       src={BRAND.icon192}
       alt=""
       aria-hidden="true"
       className={cn(
-        'h-11 w-11 shrink-0 rounded-2xl object-contain p-1.5 shadow-soft',
+        'h-12 w-12 shrink-0 rounded-2xl object-contain p-1.5 shadow-soft',
         className,
       )}
     />
   )
-}
+})

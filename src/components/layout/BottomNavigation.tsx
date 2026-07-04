@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { BarChart3, FileText, History, Home } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -12,13 +13,17 @@ const navItems = [
   { label: 'History', path: ROUTES.history, icon: History },
 ] as const
 
-export function BottomNavigation() {
+export const BottomNavigation = memo(function BottomNavigation() {
   return (
     <nav
-      aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/40 bg-background/75 backdrop-blur-2xl"
+      aria-label="Primary navigation"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/40 bg-background/90 backdrop-blur-2xl safe-area-bottom"
+      style={{
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+      }}
     >
-      <div className="mx-auto flex h-[4.5rem] max-w-lg items-center justify-around px-2 pb-[env(safe-area-inset-bottom)]">
+      <div className="mx-auto flex min-h-[var(--nav-height)] max-w-lg items-stretch justify-around px-2 pt-1">
         {navItems.map(({ label, path, icon: Icon }) => (
           <NavLink
             key={path}
@@ -27,7 +32,7 @@ export function BottomNavigation() {
             aria-label={label}
             className={({ isActive }) =>
               cn(
-                'relative flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 rounded-2xl px-3 py-2.5 text-[11px] font-medium transition-colors',
+                'android-ripple relative flex min-h-12 min-w-[4.5rem] flex-1 flex-col items-center justify-center gap-1 rounded-[16px] px-2 py-2 text-[11px] font-semibold transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 isActive
                   ? 'text-primary'
@@ -40,17 +45,17 @@ export function BottomNavigation() {
                 {isActive ? (
                   <motion.span
                     layoutId="nav-pill"
-                    className="absolute inset-0 rounded-2xl bg-primary/10"
+                    className="absolute inset-x-1 inset-y-1 rounded-[14px] bg-primary/12 shadow-soft"
                     transition={springSegment}
                     aria-hidden="true"
                   />
                 ) : null}
                 <Icon
-                  className="relative z-10 h-5 w-5"
-                  strokeWidth={isActive ? 2.4 : 2}
+                  className="relative z-10 h-6 w-6"
+                  strokeWidth={isActive ? 2.5 : 2}
                   aria-hidden="true"
                 />
-                <span className="relative z-10">{label}</span>
+                <span className="relative z-10 leading-none">{label}</span>
               </>
             )}
           </NavLink>
@@ -58,4 +63,4 @@ export function BottomNavigation() {
       </div>
     </nav>
   )
-}
+})

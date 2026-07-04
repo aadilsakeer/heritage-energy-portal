@@ -6,7 +6,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  'relative inline-flex min-h-11 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-2xl text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+  'android-ripple relative inline-flex min-h-12 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-[16px] text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-45 active:scale-[0.97] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
@@ -15,7 +15,7 @@ const buttonVariants = cva(
         secondary:
           'bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70',
         outline:
-          'border border-border bg-card text-foreground shadow-soft hover:bg-muted active:bg-muted/80',
+          'border-2 border-border bg-card text-foreground shadow-soft hover:bg-muted active:bg-muted/80',
         accent:
           'bg-accent text-accent-foreground shadow-soft hover:bg-accent/90 active:bg-accent/95',
         ghost:
@@ -25,10 +25,10 @@ const buttonVariants = cva(
           'bg-destructive text-destructive-foreground shadow-soft hover:bg-destructive/90 active:bg-destructive/95',
       },
       size: {
-        default: 'h-11 px-5 py-2',
-        sm: 'h-9 rounded-xl px-3.5 text-xs',
-        lg: 'h-12 rounded-2xl px-6 text-base',
-        icon: 'h-11 w-11',
+        default: 'h-12 px-5 py-2.5',
+        sm: 'h-10 min-h-10 rounded-[12px] px-3.5 text-xs',
+        lg: 'h-12 min-h-12 rounded-[16px] px-6 text-base',
+        icon: 'h-12 w-12 min-h-12 min-w-12',
       },
     },
     defaultVariants: {

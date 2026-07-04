@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { CalendarDays, Download, FileText } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
@@ -18,7 +19,7 @@ interface HeroCardProps {
   isDownloading?: boolean
 }
 
-export function HeroCard({
+export const HeroCard = memo(function HeroCard({
   bill,
   onDownloadInvoice,
   isDownloading = false,
@@ -26,7 +27,7 @@ export function HeroCard({
   return (
     <motion.div {...cardEnter}>
       <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary via-brand-secondary to-primary text-primary-foreground shadow-soft">
-        <CardContent className="relative p-6 sm:p-8">
+        <CardContent className="relative p-6 sm:p-8 lg:p-10">
           <div
             className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10 blur-3xl"
             aria-hidden="true"
@@ -36,37 +37,37 @@ export function HeroCard({
             aria-hidden="true"
           />
 
-          <div className="relative space-y-8">
+          <div className="relative space-y-8 sm:space-y-10">
             <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 space-y-1">
-                <p className="text-caption text-primary-foreground/75">
+              <div className="min-w-0 space-y-1.5">
+                <p className="text-caption text-primary-foreground/80">
                   Current Bill · {bill.month}
                 </p>
                 {bill.propertyLabel ? (
-                  <p className="text-sm font-medium text-primary-foreground/90">
+                  <p className="text-sm font-medium text-primary-foreground/95">
                     {bill.propertyLabel}
                   </p>
                 ) : null}
               </div>
               <Badge
                 variant="secondary"
-                className="border-0 bg-white/15 capitalize text-primary-foreground backdrop-blur-md"
+                className="shrink-0 border-0 bg-white/15 capitalize text-primary-foreground backdrop-blur-md"
               >
                 {formatBillStatus(bill.status)}
               </Badge>
             </div>
 
-            <div className="space-y-6">
-              <div>
-                <p className="text-caption text-primary-foreground/75">
+            <div className="space-y-8">
+              <div className="space-y-2">
+                <p className="text-caption text-primary-foreground/80">
                   Remaining Amount
                 </p>
-                <p className="text-money mt-2 text-primary-foreground">
+                <p className="text-money text-primary-foreground">
                   <CountUp value={bill.balance} currency={bill.currency} />
                 </p>
               </div>
 
-              <div className="space-y-3 border-t border-white/15 pt-6">
+              <div className="space-y-4 border-t border-white/15 pt-8">
                 <AmountRow
                   label="Bill Amount"
                   value={formatCurrency(bill.billAmount, bill.currency)}
@@ -86,17 +87,17 @@ export function HeroCard({
                 />
               </div>
 
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm text-primary-foreground/90 backdrop-blur-md">
+              <div className="inline-flex min-h-12 items-center gap-2.5 rounded-full bg-white/10 px-5 py-2.5 text-sm font-medium text-primary-foreground/95 backdrop-blur-md">
                 <CalendarDays className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>Due {formatDate(bill.dueDate)}</span>
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
               <Button
                 asChild
                 size="lg"
-                className="min-h-12 bg-white text-primary hover:bg-white/90 active:bg-white/85"
+                className="min-h-12 flex-1 bg-white text-primary hover:bg-white/90 active:bg-white/85"
               >
                 <Link
                   to={`${ROUTES.bill}/${bill.id}`}
@@ -112,7 +113,7 @@ export function HeroCard({
                 size="lg"
                 aria-label="Download invoice"
                 loading={isDownloading}
-                className="min-h-12 border-white/30 bg-white/10 text-primary-foreground hover:bg-white/15 hover:text-primary-foreground active:bg-white/20"
+                className="android-ripple min-h-12 flex-1 border-white/30 bg-white/10 text-primary-foreground hover:bg-white/15 hover:text-primary-foreground active:bg-white/20"
                 onClick={onDownloadInvoice}
               >
                 <Download className="h-4 w-4" aria-hidden="true" />
@@ -124,7 +125,7 @@ export function HeroCard({
       </Card>
     </motion.div>
   )
-}
+})
 
 function AmountRow({
   label,
@@ -136,13 +137,13 @@ function AmountRow({
   emphasized?: boolean
 }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <span className="text-sm text-primary-foreground/75">{label}</span>
+    <div className="flex items-baseline justify-between gap-6">
+      <span className="text-sm font-medium text-primary-foreground/75">{label}</span>
       <span
         className={
           emphasized
             ? 'text-money-sm text-primary-foreground'
-            : 'text-base font-medium tabular-nums text-primary-foreground/95'
+            : 'text-base font-semibold tabular-nums text-primary-foreground/95'
         }
       >
         {value}
