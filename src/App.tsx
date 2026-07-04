@@ -75,6 +75,8 @@ export default function App() {
                 }
               />
               <Route path="*" element={<Navigate to={ROUTES.home} replace />} />
+
+
             </Route>
           </Routes>
           <Toaster
