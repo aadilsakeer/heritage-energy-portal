@@ -95,7 +95,10 @@ export function HomePage() {
 
   const latestBill = latestQuery.data
   const history = historyQuery.data ?? []
-  const savings = buildSavingsSummary(history, latestBill)
+  const hasPublishedBill = Boolean(latestBill)
+  const savings = hasPublishedBill
+    ? buildSavingsSummary(history, latestBill)
+    : null
   const quickStats = buildQuickStats(latestBill)
 
   return (
@@ -133,8 +136,8 @@ export function HomePage() {
 
             <EmptyState
               icon={Receipt}
-              title="No published bill"
-              description={`There is no latest published bill for ${property?.label ?? 'this property'} yet.`}
+              title="No bill has been published yet."
+              description={`Publish a bill for ${property?.label ?? 'this property'} to see amounts and savings.`}
             />
           )}
 
@@ -143,27 +146,35 @@ export function HomePage() {
               title="Savings"
               description={`Impact for ${property?.label ?? 'property'}`}
             />
-            <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-              <StatCard
-                label="Saved This Month"
-                value={formatCurrency(savings.savedThisMonth, savings.currency)}
+            {!savings ? (
+              <EmptyState
                 icon={Leaf}
-                accent="primary"
-                size="large"
-                delay={0.04}
+                title="No savings yet"
+                description="Savings appear after your first bill is published."
               />
-              <StatCard
-                label="Lifetime Savings"
-                value={formatCurrency(
-                  savings.lifetimeSavings,
-                  savings.currency,
-                )}
-                icon={Sparkles}
-                accent="accent"
-                size="large"
-                delay={0.08}
-              />
-            </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+                <StatCard
+                  label="Saved This Month"
+                  value={formatCurrency(savings.savedThisMonth, savings.currency)}
+                  icon={Leaf}
+                  accent="primary"
+                  size="large"
+                  delay={0.04}
+                />
+                <StatCard
+                  label="Lifetime Savings"
+                  value={formatCurrency(
+                    savings.lifetimeSavings,
+                    savings.currency,
+                  )}
+                  icon={Sparkles}
+                  accent="accent"
+                  size="large"
+                  delay={0.08}
+                />
+              </div>
+            )}
           </section>
 
           <section aria-label="Quick statistics">

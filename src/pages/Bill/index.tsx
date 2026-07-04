@@ -86,7 +86,7 @@ export function BillPage() {
       <PageContainer>
         <EmptyState
           icon={Receipt}
-          title="No bill available"
+          title="No published bill."
           description={`Publish a bill for ${property?.label ?? 'this property'} to see the breakdown.`}
         />
       </PageContainer>

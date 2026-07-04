@@ -331,8 +331,8 @@ export function AdminPage() {
           {uploads.length === 0 ? (
             <EmptyState
               icon={FileText}
-              title="No uploads yet"
-              description="Uploaded PDFs will appear here as draft bills."
+              title="No uploads yet."
+              description="Upload a bill to get started."
             />
           ) : (
             <div className="space-y-3">

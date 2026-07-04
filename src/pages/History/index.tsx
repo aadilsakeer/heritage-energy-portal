@@ -51,6 +51,9 @@ export function HistoryPage() {
       )
   }, [historyQuery.data, properties, search])
 
+  const rawBills = historyQuery.data ?? []
+  const isFilteredEmpty = rawBills.length > 0 && items.length === 0
+
   const handleDownload = async (billId: string) => {
     try {
       const bill = await fetchBillById(billId)
@@ -148,8 +151,12 @@ export function HistoryPage() {
           {items.length === 0 ? (
             <EmptyState
               icon={Receipt}
-              title="No bills found"
-              description="Published invoices matching your filters will appear here."
+              title={isFilteredEmpty ? 'No matching bills' : 'No bills available.'}
+              description={
+                isFilteredEmpty
+                  ? 'Try a different month or property filter.'
+                  : 'Published bills will appear here once uploaded.'
+              }
             />
           ) : (
             <div className="space-y-3" role="list" aria-label="Bill history">
