@@ -41,23 +41,23 @@ export function AccountSummaryCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35 }}
+      transition={{ duration: 0.18 }}
     >
       <Card className="surface-card overflow-hidden">
-        <CardContent className="space-y-5 p-5 sm:p-6">
+        <CardContent className="space-y-6 p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-medium text-primary">Account Summary</p>
-              <h2 className="mt-1 text-xl font-semibold">{bill.month}</h2>
+              <p className="text-caption text-primary">Current Period</p>
+              <h2 className="text-heading mt-1">{bill.month}</h2>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge className={billStatusColorClass[bill.status]}>
                 {statusLabel}
               </Badge>
               {outstanding?.isOverdue ? (
-                <Badge className="border-0 bg-red-500/15 text-red-700 dark:text-red-300">
+                <Badge className="border-0 bg-red-500/12 text-red-700 dark:text-red-300">
                   {outstanding.overdueDays}d overdue
                 </Badge>
               ) : null}
@@ -65,22 +65,22 @@ export function AccountSummaryCard({
           </div>
 
           {hasPendingVerification ? (
-            <div className="flex items-start gap-3 rounded-2xl border border-orange-500/20 bg-orange-500/10 px-4 py-3">
+            <div className="flex items-start gap-3 rounded-2xl border border-orange-500/20 bg-orange-500/8 px-4 py-3.5">
               <Clock className="mt-0.5 h-5 w-5 shrink-0 text-orange-600 dark:text-orange-400" />
               <div>
-                <p className="font-medium text-orange-800 dark:text-orange-200">
+                <p className="font-semibold tracking-tight text-orange-900 dark:text-orange-200">
                   Payment pending verification
                 </p>
-                <p className="mt-1 text-sm text-orange-700/80 dark:text-orange-300/80">
+                <p className="mt-1 text-sm text-orange-800/80 dark:text-orange-300/80">
                   Your payment request is awaiting admin approval.
                 </p>
               </div>
             </div>
           ) : null}
 
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <SummaryTile
-              label="Total Outstanding"
+              label="Outstanding"
               value={formatCurrency(
                 outstanding?.totalOutstanding ?? summary.balance,
               )}
@@ -92,29 +92,29 @@ export function AccountSummaryCard({
               )}
             />
             <SummaryTile
-              label="Previous Outstanding"
+              label="Previous"
               value={formatCurrency(outstanding?.previousOutstanding ?? 0)}
             />
             <SummaryTile
-              label="Credit Applied"
+              label="Credits"
               value={formatCurrency(
                 outstanding?.creditApplied ?? summary.creditApplied,
               )}
-              accent="text-blue-600 dark:text-blue-400"
+              accent="text-blue-700 dark:text-blue-300"
             />
             <SummaryTile
-              label="Amount Paid"
+              label="Paid"
               value={formatCurrency(summary.totalPaid)}
-              accent="text-emerald-600 dark:text-emerald-400"
+              accent="text-emerald-700 dark:text-emerald-300"
             />
             <SummaryTile
-              label="Total Due"
+              label="Amount Due"
               value={formatCurrency(outstanding?.totalDue ?? summary.balance)}
             />
             <SummaryTile
-              label="Current Credit"
+              label="Wallet Credit"
               value={formatCurrency(bill.accountCredit)}
-              accent="text-emerald-600 dark:text-emerald-400"
+              accent="text-emerald-700 dark:text-emerald-300"
             />
             <SummaryTile
               label="Final Amount"
@@ -122,19 +122,19 @@ export function AccountSummaryCard({
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Payment progress</span>
-              <span className="font-medium">
+              <span className="font-semibold tabular-nums">
                 {summary.paymentPercentage.toFixed(0)}%
               </span>
             </div>
-            <Progress value={summary.paymentPercentage} className="h-2.5" />
+            <Progress value={summary.paymentPercentage} className="h-2" />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <HistoryBlock
-              title="Payment History"
+              title="Payments"
               icon={Wallet}
               empty="No payments recorded yet"
               items={payments.slice(0, 4).map((payment) => ({
@@ -144,7 +144,7 @@ export function AccountSummaryCard({
               }))}
             />
             <HistoryBlock
-              title="Credit History"
+              title="Credits"
               icon={AlertCircle}
               empty="No credits on this account"
               items={[
@@ -179,9 +179,11 @@ function SummaryTile({
   accent?: string
 }) {
   return (
-    <div className="rounded-2xl border border-border/40 bg-muted/20 px-3 py-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`mt-1 text-base font-semibold ${accent ?? ''}`}>{value}</p>
+    <div className="rounded-2xl border border-border/50 bg-muted/25 px-3.5 py-3.5">
+      <p className="text-caption">{label}</p>
+      <p className={`mt-1.5 text-[15px] font-semibold tabular-nums ${accent ?? ''}`}>
+        {value}
+      </p>
     </div>
   )
 }
@@ -203,10 +205,10 @@ function HistoryBlock({
   }>
 }) {
   return (
-    <div className="rounded-2xl border border-border/40 bg-muted/10 p-3">
+    <div className="rounded-2xl border border-border/50 bg-muted/15 p-4">
       <div className="mb-3 flex items-center gap-2">
         <Icon className="h-4 w-4 text-muted-foreground" />
-        <p className="text-sm font-medium">{title}</p>
+        <p className="text-sm font-semibold tracking-tight">{title}</p>
       </div>
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">{empty}</p>
@@ -215,19 +217,19 @@ function HistoryBlock({
           {items.map((item) => (
             <li
               key={item.id}
-              className="flex items-start justify-between gap-2 rounded-xl bg-background/60 px-3 py-2"
+              className="flex items-start justify-between gap-2 rounded-xl bg-card/80 px-3 py-2.5 ring-1 ring-border/40"
             >
               <div>
-                <p className="text-sm font-medium">{item.primary}</p>
-                <p className="text-xs text-muted-foreground">{item.secondary}</p>
+                <p className="text-sm font-semibold tabular-nums">{item.primary}</p>
+                <p className="text-caption mt-0.5">{item.secondary}</p>
               </div>
               {item.badge ? (
                 <Badge
                   variant="outline"
                   className={
                     item.badge === 'Applied'
-                      ? 'border-0 bg-blue-500/15 text-blue-700 dark:text-blue-300'
-                      : 'border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                      ? 'border-0 bg-blue-500/12 text-blue-700 dark:text-blue-300'
+                      : 'border-0 bg-emerald-500/12 text-emerald-700 dark:text-emerald-300'
                   }
                 >
                   {item.badge}

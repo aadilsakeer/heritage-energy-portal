@@ -13,33 +13,40 @@ export function BillSummaryCard({ summary }: BillSummaryCardProps) {
     {
       label: 'Credits',
       value: summary.credits,
-      accent: 'text-blue-600 dark:text-blue-400',
+      accent: 'text-blue-700 dark:text-blue-300',
     },
     {
       label: 'Payments',
       value: summary.payments,
-      accent: 'text-emerald-600 dark:text-emerald-400',
+      accent: 'text-emerald-700 dark:text-emerald-300',
     },
     { label: 'Closing Balance', value: summary.closingBalance },
   ]
 
   return (
-    <Card className="surface-card overflow-hidden">
-      <CardContent className="space-y-4 p-5 sm:p-6">
+    <Card className="surface-elevated overflow-hidden">
+      <CardContent className="space-y-5 p-5 sm:p-6">
         <div>
-          <p className="text-sm font-medium text-primary">Bill Summary</p>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-caption text-primary">Financial Statement</p>
+          <h2 className="text-heading mt-1">Bill Summary</h2>
+          <p className="text-caption mt-1.5">
             Opening balance carries unpaid amounts from earlier bills
           </p>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {rows.map((row) => (
+          {rows.map((row, index) => (
             <div
               key={row.label}
-              className="rounded-2xl border border-border/40 bg-muted/20 px-3 py-3"
+              className={
+                index === rows.length - 1
+                  ? 'rounded-2xl border border-primary/20 bg-primary/5 px-3.5 py-4'
+                  : 'rounded-2xl border border-border/50 bg-muted/20 px-3.5 py-4'
+              }
             >
-              <p className="text-xs text-muted-foreground">{row.label}</p>
-              <p className={`mt-1 text-base font-semibold tabular-nums ${row.accent ?? ''}`}>
+              <p className="text-caption">{row.label}</p>
+              <p
+                className={`mt-2 text-lg font-semibold tabular-nums tracking-tight ${row.accent ?? ''}`}
+              >
                 {formatCurrency(row.value)}
               </p>
             </div>

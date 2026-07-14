@@ -23,17 +23,17 @@ export function ChartCard({
 }: ChartCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 14 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay, ease: easeOut }}
+      transition={{ duration: 0.18, delay: Math.min(delay, 0.2), ease: easeOut }}
       className={className}
     >
-      <Card className="h-full overflow-hidden border-border/50 bg-card/80 shadow-soft backdrop-blur-xl">
+      <Card className="surface-card h-full overflow-hidden">
         <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
           <div className="space-y-1">
-            <CardTitle className="text-base font-semibold">{title}</CardTitle>
+            <CardTitle>{title}</CardTitle>
             {description ? (
-              <p className="text-sm text-muted-foreground">{description}</p>
+              <p className="text-caption">{description}</p>
             ) : null}
           </div>
           {action}

@@ -189,7 +189,7 @@ export function HomePage() {
             propertyId ? `property-tab-${propertyId}` : undefined
           }
           {...pagePanel}
-          className="space-y-6 sm:space-y-8"
+          className="page-stack"
         >
           {latestBill && latestSummary ? (
             <>

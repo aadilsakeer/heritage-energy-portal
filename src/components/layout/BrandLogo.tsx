@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils'
 interface BrandLogoProps {
   className?: string
   imageClassName?: string
-  /** full: icon + Heritage Solar stacked; wide: full logo image; icon: mark only */
   variant?: 'full' | 'wide' | 'icon'
   subtitle?: string
   asLink?: boolean
@@ -23,14 +22,19 @@ export const BrandLogo = memo(function BrandLogo({
     variant === 'icon' ? (
       <BrandMark className={imageClassName} />
     ) : variant === 'full' ? (
-      <div className="flex min-w-0 items-center gap-3 py-0.5">
+      <div className="flex min-w-0 items-center gap-3.5 py-0.5">
         <BrandMark
-          className={cn('h-12 w-12 shrink-0 p-1.5 sm:h-[3rem] sm:w-[3rem]', imageClassName)}
+          className={cn(
+            'h-12 w-12 shrink-0 p-1.5 sm:h-14 sm:w-14',
+            imageClassName,
+          )}
         />
         <div className="min-w-0 leading-tight">
-          <p className="text-subtitle truncate">{APP_NAME}</p>
+          <p className="truncate text-[1.05rem] font-semibold tracking-tight sm:text-xl">
+            {APP_NAME}
+          </p>
           {subtitle ? (
-            <p className="text-caption mt-1 truncate font-normal">{subtitle}</p>
+            <p className="text-caption mt-1 truncate font-medium">{subtitle}</p>
           ) : null}
         </div>
       </div>
@@ -40,7 +44,7 @@ export const BrandLogo = memo(function BrandLogo({
           src={BRAND.logo}
           alt={APP_NAME}
           className={cn(
-            'h-auto w-auto max-h-12 max-w-[11rem] object-contain object-left sm:max-h-14 sm:max-w-[13rem]',
+            'h-auto w-auto max-h-12 max-w-[12rem] object-contain object-left sm:max-h-14 sm:max-w-[14rem]',
             imageClassName,
           )}
         />
@@ -58,7 +62,7 @@ export const BrandLogo = memo(function BrandLogo({
     <Link
       to={ROUTES.home}
       className={cn(
-        'inline-flex rounded-2xl transition-opacity hover:opacity-85 focus-visible:outline-none',
+        'inline-flex rounded-2xl transition-opacity duration-200 hover:opacity-90 focus-visible:outline-none',
         className,
       )}
       aria-label={`${APP_NAME} home`}
@@ -68,14 +72,18 @@ export const BrandLogo = memo(function BrandLogo({
   )
 })
 
-export const BrandMark = memo(function BrandMark({ className }: { className?: string }) {
+export const BrandMark = memo(function BrandMark({
+  className,
+}: {
+  className?: string
+}) {
   return (
     <img
       src={BRAND.icon192}
       alt=""
       aria-hidden="true"
       className={cn(
-        'h-12 w-12 shrink-0 rounded-2xl object-contain p-1.5 shadow-soft',
+        'h-12 w-12 shrink-0 rounded-2xl object-contain p-1.5 ring-1 ring-border/60',
         className,
       )}
     />

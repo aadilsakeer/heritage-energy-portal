@@ -33,54 +33,51 @@ export const HeroCard = memo(function HeroCard({
   const isOverdue = outstanding?.isOverdue ?? false
   const heroAmount = outstanding?.totalOutstanding ?? bill.balance
 
+  const statusLabel =
+    typeof displayStatus === 'string' &&
+    [
+      'Paid',
+      'Unpaid',
+      'Partially Paid',
+      'Overdue',
+      'Critical',
+      'Pending Verification',
+      'Draft',
+      'Archived',
+    ].includes(displayStatus)
+      ? formatAccountDisplayStatus(displayStatus as AccountDisplayStatus)
+      : formatBillStatus(bill.status)
+
   return (
     <motion.div {...cardEnter}>
-      <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary via-brand-secondary to-primary text-primary-foreground shadow-soft">
+      <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary via-[#066b40] to-brand-secondary text-primary-foreground shadow-elevated">
         <CardContent className="relative p-6 sm:p-8 lg:p-10">
           <div
-            className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10 blur-3xl"
+            className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-3xl"
             aria-hidden="true"
           />
           <div
-            className="pointer-events-none absolute -bottom-12 left-1/4 h-36 w-36 rounded-full bg-brand-accent/20 blur-3xl"
+            className="pointer-events-none absolute -bottom-20 left-1/3 h-44 w-44 rounded-full bg-brand-accent/25 blur-3xl"
             aria-hidden="true"
           />
 
-          <div className="relative space-y-8 sm:space-y-10">
+          <div className="relative space-y-8">
             <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 space-y-1.5">
-                <p className="text-caption text-primary-foreground/80">
-                  Property Account · {bill.month}
+              <div className="min-w-0 space-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-primary-foreground/70">
+                  Account Summary
                 </p>
-                {bill.propertyLabel ? (
-                  <p className="text-sm font-medium text-primary-foreground/95">
-                    {bill.propertyLabel}
-                  </p>
-                ) : null}
+                <p className="truncate text-sm font-medium text-primary-foreground/90">
+                  {bill.propertyLabel ? `${bill.propertyLabel} · ` : ''}
+                  {bill.month}
+                </p>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-2">
-                <Badge
-                  variant="secondary"
-                  className="border-0 bg-white/15 capitalize text-primary-foreground backdrop-blur-md"
-                >
-                  {typeof displayStatus === 'string' &&
-                  [
-                    'Paid',
-                    'Unpaid',
-                    'Partially Paid',
-                    'Overdue',
-                    'Critical',
-                    'Pending Verification',
-                    'Draft',
-                    'Archived',
-                  ].includes(displayStatus)
-                    ? formatAccountDisplayStatus(
-                        displayStatus as AccountDisplayStatus,
-                      )
-                    : formatBillStatus(bill.status)}
+                <Badge className="border-0 bg-white/15 capitalize text-primary-foreground backdrop-blur-md">
+                  {statusLabel}
                 </Badge>
                 {isOverdue && outstanding ? (
-                  <Badge className="border-0 bg-red-500/25 text-primary-foreground">
+                  <Badge className="border-0 bg-red-500/30 text-primary-foreground">
                     <AlertTriangle className="mr-1 h-3 w-3" aria-hidden />
                     {outstanding.isCritical
                       ? `Critical · ${outstanding.overdueDays}d`
@@ -90,68 +87,63 @@ export const HeroCard = memo(function HeroCard({
               </div>
             </div>
 
-            <div className="space-y-8">
-              <div className="space-y-2">
-                <p className="text-caption text-primary-foreground/80">
-                  Total Outstanding
-                </p>
-                <p className="text-money text-primary-foreground">
-                  <CountUp value={heroAmount} currency={bill.currency} />
-                </p>
-              </div>
-
-              <div className="space-y-4 border-t border-white/15 pt-8">
-                <AmountRow
-                  label="Current Bill"
-                  value={formatCurrency(
-                    outstanding?.currentBillAmount ?? bill.finalAmount,
-                    bill.currency,
-                  )}
-                />
-                <AmountRow
-                  label="Previous Outstanding"
-                  value={formatCurrency(
-                    outstanding?.previousOutstanding ?? 0,
-                    bill.currency,
-                  )}
-                />
-                <AmountRow
-                  label="Credit Applied"
-                  value={formatCurrency(
-                    outstanding?.creditApplied ?? bill.creditApplied,
-                    bill.currency,
-                  )}
-                />
-                <AmountRow
-                  label="Paid"
-                  value={formatCurrency(bill.totalPaid, bill.currency)}
-                />
-                <AmountRow
-                  label="Total Due"
-                  value={formatCurrency(
-                    outstanding?.totalDue ?? bill.balance,
-                    bill.currency,
-                  )}
-                  emphasized
-                />
-              </div>
-
-              <div className="inline-flex min-h-12 items-center gap-2.5 rounded-full bg-white/10 px-5 py-2.5 text-sm font-medium text-primary-foreground/95 backdrop-blur-md">
-                <CalendarDays className="h-4 w-4 shrink-0" aria-hidden="true" />
-                <span>
-                  Due{' '}
-                  {formatDate(
-                    outstanding?.dueDate ?? bill.dueDate,
-                  )}
-                </span>
-              </div>
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-primary-foreground/70">
+                Outstanding
+              </p>
+              <p className="text-money text-primary-foreground">
+                <CountUp value={heroAmount} currency={bill.currency} />
+              </p>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <MiniStat
+                label="Current Bill"
+                value={formatCurrency(
+                  outstanding?.currentBillAmount ?? bill.finalAmount,
+                  bill.currency,
+                )}
+              />
+              <MiniStat
+                label="Credits"
+                value={formatCurrency(
+                  outstanding?.creditApplied ?? bill.creditApplied,
+                  bill.currency,
+                )}
+              />
+              <MiniStat
+                label="Paid"
+                value={formatCurrency(bill.totalPaid, bill.currency)}
+              />
+              <MiniStat
+                label="Amount Due"
+                value={formatCurrency(
+                  outstanding?.totalDue ?? bill.balance,
+                  bill.currency,
+                )}
+                emphasis
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-primary-foreground/95 backdrop-blur-md">
+                <CalendarDays className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>
+                  Due {formatDate(outstanding?.dueDate ?? bill.dueDate)}
+                </span>
+              </div>
+              {outstanding?.collectionStatus ? (
+                <div className="inline-flex min-h-11 items-center rounded-full bg-white/10 px-4 py-2 text-sm font-medium backdrop-blur-md">
+                  {outstanding.collectionStatus}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-3">
               <Button
                 asChild
                 size="lg"
-                className="min-h-12 flex-1 bg-white text-primary hover:bg-white/90 active:bg-white/85"
+                className="min-h-12 flex-1 rounded-2xl bg-white text-primary hover:bg-white/92"
               >
                 <Link
                   to={`${ROUTES.bill}/${bill.id}`}
@@ -167,11 +159,11 @@ export const HeroCard = memo(function HeroCard({
                 size="lg"
                 aria-label="Download invoice"
                 loading={isDownloading}
-                className="android-ripple min-h-12 flex-1 border-white/30 bg-white/10 text-primary-foreground hover:bg-white/15 hover:text-primary-foreground active:bg-white/20"
+                className="android-ripple min-h-12 flex-1 rounded-2xl border-white/25 bg-white/10 text-primary-foreground hover:bg-white/15 hover:text-primary-foreground"
                 onClick={onDownloadInvoice}
               >
                 <Download className="h-4 w-4" aria-hidden="true" />
-                Download Invoice
+                Invoice
               </Button>
             </div>
           </div>
@@ -181,27 +173,27 @@ export const HeroCard = memo(function HeroCard({
   )
 })
 
-function AmountRow({
+function MiniStat({
   label,
   value,
-  emphasized = false,
+  emphasis = false,
 }: {
   label: string
   value: string
-  emphasized?: boolean
+  emphasis?: boolean
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-6">
-      <span className="text-sm font-medium text-primary-foreground/75">{label}</span>
-      <span
+    <div className="rounded-2xl bg-white/10 px-3.5 py-3 backdrop-blur-md">
+      <p className="text-[11px] font-medium text-primary-foreground/70">{label}</p>
+      <p
         className={
-          emphasized
-            ? 'text-money-sm text-primary-foreground'
-            : 'text-base font-semibold tabular-nums text-primary-foreground/95'
+          emphasis
+            ? 'mt-1.5 text-base font-semibold tabular-nums'
+            : 'mt-1.5 text-sm font-semibold tabular-nums text-primary-foreground/95'
         }
       >
         {value}
-      </span>
+      </p>
     </div>
   )
 }

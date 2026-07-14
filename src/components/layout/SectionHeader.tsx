@@ -19,15 +19,13 @@ export function SectionHeader({
   return (
     <div
       className={cn(
-        'mb-4 flex items-end justify-between gap-4 sm:mb-6',
+        'mb-5 flex items-end justify-between gap-4 sm:mb-6',
         className,
       )}
     >
       <div className="min-w-0 space-y-1.5">
-        <Tag className="text-title">{title}</Tag>
-        {description ? (
-          <p className="text-caption">{description}</p>
-        ) : null}
+        <Tag className="text-heading sm:text-xl">{title}</Tag>
+        {description ? <p className="text-caption">{description}</p> : null}
       </div>
       {action}
     </div>

@@ -31,23 +31,30 @@ export function EmptyState({
       role="status"
       aria-live="polite"
       className={cn(
-        'flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/70 bg-card/70 px-6 py-16 text-center shadow-soft backdrop-blur-xl sm:px-8',
+        'flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 bg-card/80 px-6 py-16 text-center sm:px-10 sm:py-20',
         className,
       )}
     >
-      <span className="mb-6 flex h-16 w-16 items-center justify-center rounded-3xl bg-muted/80 text-muted-foreground">
+      <span className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/90 text-muted-foreground ring-1 ring-border/50">
         {branded ? (
-          <BrandMark className="h-14 w-14 rounded-3xl p-2 opacity-70" />
+          <BrandMark className="h-14 w-14 rounded-2xl p-2 opacity-80" />
         ) : (
-          <Icon className="h-7 w-7" aria-hidden="true" />
+          <Icon className="h-7 w-7" strokeWidth={1.75} aria-hidden="true" />
         )}
       </span>
-      <h3 className="text-subtitle">{title}</h3>
+      <h3 className="text-heading">{title}</h3>
       {description ? (
-        <p className="text-body mt-3 max-w-md text-muted-foreground">{description}</p>
+        <p className="text-body mt-3 max-w-sm text-muted-foreground">
+          {description}
+        </p>
       ) : null}
       {actionLabel && onAction ? (
-        <Button type="button" className="mt-8 min-h-12 px-6" size="lg" onClick={onAction}>
+        <Button
+          type="button"
+          className="mt-8"
+          size="lg"
+          onClick={onAction}
+        >
           {actionLabel}
         </Button>
       ) : null}

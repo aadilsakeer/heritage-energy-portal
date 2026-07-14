@@ -5,12 +5,14 @@ import { ROUTES } from '@/constants'
 
 export function AppShell() {
   const location = useLocation()
-  const onAdmin = Boolean(matchPath({ path: ROUTES.admin }, location.pathname))
+  const hideNav =
+    Boolean(matchPath({ path: ROUTES.admin }, location.pathname)) ||
+    Boolean(matchPath({ path: ROUTES.settings }, location.pathname))
 
   return (
     <div className="relative min-h-svh overflow-x-hidden bg-background">
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-[radial-gradient(ellipse_at_top,oklch(0.72_0.11_155/0.14),transparent_70%)] dark:bg-[radial-gradient(ellipse_at_top,oklch(0.48_0.11_155/0.2),transparent_70%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(ellipse_at_top,color-mix(in_oklab,var(--primary)_12%,transparent),transparent_68%)]"
         aria-hidden="true"
       />
 
@@ -18,7 +20,7 @@ export function AppShell() {
       <div className="overflow-x-hidden">
         <Outlet />
       </div>
-      {!onAdmin ? <BottomNavigation /> : null}
+      {!hideNav ? <BottomNavigation /> : null}
     </div>
   )
 }

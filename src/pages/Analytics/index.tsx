@@ -122,14 +122,12 @@ export function AnalyticsPage() {
             propertyId ? `property-tab-${propertyId}` : undefined
           }
           {...pagePanel}
-          className="space-y-6 sm:space-y-8"
+          className="page-stack"
         >
           <header>
-            <p className="text-sm font-medium text-primary">Analytics</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-              Energy Insights
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="text-caption text-primary">Analytics</p>
+            <h1 className="text-display mt-2">Energy Insights</h1>
+            <p className="text-caption mt-2">
               Live trends for {property?.label ?? 'property'}
             </p>
           </header>

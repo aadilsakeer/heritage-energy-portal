@@ -103,7 +103,7 @@ export function SettingsPage() {
   return (
     <PageContainer>
       <AnimatePresence mode="wait">
-        <motion.div {...pagePanel} className="space-y-6 sm:space-y-8">
+        <motion.div {...pagePanel} className="page-stack">
           <header>
             <p className="text-sm font-medium text-primary">Settings</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">

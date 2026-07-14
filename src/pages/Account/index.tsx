@@ -126,7 +126,7 @@ export function AccountPage() {
         <motion.div
           key={propertyId}
           {...pagePanel}
-          className="space-y-6 sm:space-y-8"
+          className="page-stack"
         >
           <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>

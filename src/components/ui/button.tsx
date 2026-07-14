@@ -6,29 +6,28 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  'android-ripple relative inline-flex min-h-12 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-[16px] text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-45 active:scale-[0.97] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+  'android-ripple relative inline-flex min-h-12 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-2xl text-sm font-semibold tracking-tight transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-45 active:scale-[0.98] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
         default:
-          'bg-primary text-primary-foreground shadow-soft hover:bg-primary/90 active:bg-primary/95',
+          'bg-primary text-primary-foreground shadow-soft hover:bg-primary/92 active:bg-primary/88',
         secondary:
-          'bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70',
+          'bg-secondary text-secondary-foreground hover:bg-secondary/85 active:bg-secondary/75',
         outline:
-          'border-2 border-border bg-card text-foreground shadow-soft hover:bg-muted active:bg-muted/80',
+          'border border-border bg-card text-foreground shadow-soft hover:bg-muted/70 active:bg-muted',
         accent:
-          'bg-accent text-accent-foreground shadow-soft hover:bg-accent/90 active:bg-accent/95',
-        ghost:
-          'hover:bg-muted hover:text-foreground active:bg-muted/80',
+          'bg-accent text-accent-foreground shadow-soft hover:bg-accent/92 active:bg-accent/88',
+        ghost: 'hover:bg-muted/80 hover:text-foreground active:bg-muted',
         link: 'text-primary underline-offset-4 hover:underline',
         destructive:
-          'bg-destructive text-destructive-foreground shadow-soft hover:bg-destructive/90 active:bg-destructive/95',
+          'bg-destructive text-white shadow-soft hover:bg-destructive/92 active:bg-destructive/88',
       },
       size: {
         default: 'h-12 px-5 py-2.5',
-        sm: 'h-10 min-h-10 rounded-[12px] px-3.5 text-xs',
-        lg: 'h-12 min-h-12 rounded-[16px] px-6 text-base',
-        icon: 'h-12 w-12 min-h-12 min-w-12',
+        sm: 'h-10 min-h-10 rounded-xl px-3.5 text-xs',
+        lg: 'h-12 min-h-12 rounded-2xl px-6 text-[15px]',
+        icon: 'h-12 w-12 min-h-12 min-w-12 rounded-2xl',
       },
     },
     defaultVariants: {

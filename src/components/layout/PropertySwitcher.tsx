@@ -6,12 +6,9 @@ import { cn } from '@/lib/utils'
 import { springSegment } from '@/lib/motion'
 import { Skeleton } from '@/components/ui/skeleton'
 
-const propertyMeta: Record<
-  string,
-  { Icon: typeof Home; emoji: string }
-> = {
-  home: { Icon: Home, emoji: '🏠' },
-  heritage: { Icon: Building2, emoji: '🏢' },
+const propertyMeta: Record<string, { Icon: typeof Home }> = {
+  home: { Icon: Home },
+  heritage: { Icon: Building2 },
 }
 
 export const PropertySwitcher = memo(function PropertySwitcher() {
@@ -34,7 +31,7 @@ export const PropertySwitcher = memo(function PropertySwitcher() {
     <div
       role="tablist"
       aria-label="Select property"
-      className="relative grid grid-cols-2 gap-2 rounded-2xl border border-border/40 bg-muted/40 p-1.5"
+      className="relative grid grid-cols-2 gap-1.5 rounded-2xl border border-border/60 bg-muted/50 p-1.5"
     >
       {properties.map((property) => {
         const isActive = property.id === propertyId
@@ -60,7 +57,7 @@ export const PropertySwitcher = memo(function PropertySwitcher() {
               )
             }
             className={cn(
-              'android-ripple relative z-10 flex min-h-12 items-center justify-center gap-2 rounded-[14px] px-3 py-3 text-sm font-medium transition-colors',
+              'android-ripple relative z-10 flex min-h-12 items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold tracking-tight transition-colors duration-200',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               isActive
                 ? 'text-primary'
@@ -70,16 +67,13 @@ export const PropertySwitcher = memo(function PropertySwitcher() {
             {isActive ? (
               <motion.span
                 layoutId="property-segment"
-                className="absolute inset-0 rounded-[14px] border border-primary/15 bg-card text-primary shadow-soft"
+                className="absolute inset-0 rounded-xl border border-border/70 bg-card shadow-soft"
                 transition={springSegment}
                 aria-hidden="true"
               />
             ) : null}
-            <span className="relative z-10 text-lg leading-none" aria-hidden="true">
-              {meta.emoji}
-            </span>
-            <Icon className="relative z-10 hidden h-4 w-4 sm:block" aria-hidden="true" />
-            <span className="relative z-10 truncate font-medium">
+            <Icon className="relative z-10 h-4 w-4" aria-hidden="true" />
+            <span className="relative z-10 truncate">
               <span className="sm:hidden">{property.shortLabel}</span>
               <span className="hidden sm:inline">{property.label}</span>
             </span>

@@ -359,7 +359,7 @@ export function AdminPage() {
 
   return (
     <PageContainer>
-      <div className="space-y-6 sm:space-y-8">
+      <div className="page-stack">
         <div>
           <BrandLogo variant="wide" imageClassName="max-h-14 sm:max-h-16" />
           <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
@@ -388,58 +388,58 @@ export function AdminPage() {
             />
             <div className="grid gap-3 sm:grid-cols-2">
               {propertyOverview.map(({ property: item, account }) => (
-                <Card key={item.id} className="surface-card">
-                  <CardContent className="space-y-3 p-4">
-                    <div className="flex items-start justify-between gap-2">
+                    <Card key={item.id} className="surface-card transition-shadow duration-200 hover:shadow-elevated">
+                  <CardContent className="space-y-4 p-5">
+                    <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-semibold">{item.label}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-heading">{item.label}</p>
+                        <p className="text-caption mt-1">
                           {item.consumerNumber ?? item.slug}
                         </p>
                       </div>
                       <Badge
                         className={
                           account.collectionStatus === 'Critical'
-                            ? 'border-0 bg-red-600/20 text-red-800 dark:text-red-200'
+                            ? 'border-0 bg-red-600/15 text-red-800 dark:text-red-200'
                             : account.collectionStatus === 'Overdue'
-                              ? 'border-0 bg-red-500/15 text-red-700 dark:text-red-300'
+                              ? 'border-0 bg-red-500/12 text-red-700 dark:text-red-300'
                               : account.collectionStatus === 'Clear'
-                                ? 'border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                                : 'border-0 bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                                ? 'border-0 bg-emerald-500/12 text-emerald-800 dark:text-emerald-300'
+                                : 'border-0 bg-amber-500/12 text-amber-800 dark:text-amber-300'
                         }
                       >
                         {account.collectionStatus}
                       </Badge>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Current Bill</p>
-                        <p className="font-medium">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-xl bg-muted/30 px-3 py-2.5">
+                        <p className="text-caption">Current Bill</p>
+                        <p className="mt-1 font-semibold tabular-nums">
                           {formatCurrency(account.currentBillAmount)}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Outstanding</p>
-                        <p className="font-medium">
+                      <div className="rounded-xl bg-muted/30 px-3 py-2.5">
+                        <p className="text-caption">Outstanding</p>
+                        <p className="mt-1 font-semibold tabular-nums">
                           {formatCurrency(account.outstanding)}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Last Payment</p>
-                        <p className="font-medium">
+                      <div className="rounded-xl bg-muted/30 px-3 py-2.5">
+                        <p className="text-caption">Last Payment</p>
+                        <p className="mt-1 font-semibold tabular-nums">
                           {account.lastPayment
                             ? formatCurrency(account.lastPayment.amount)
                             : '—'}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Credits</p>
-                        <p className="font-medium">
-                          {formatCurrency(account.credits)}
+                      <div className="rounded-xl bg-muted/30 px-3 py-2.5">
+                        <p className="text-caption">Collection %</p>
+                        <p className="mt-1 font-semibold tabular-nums">
+                          {account.collectionPercent.toFixed(0)}%
                         </p>
                       </div>
                     </div>
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline" size="sm" className="w-full">
                       <Link
                         to={ROUTES.account}
                         onClick={() => setPropertyId(item.id)}
