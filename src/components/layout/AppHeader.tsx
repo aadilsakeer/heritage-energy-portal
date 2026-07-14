@@ -1,9 +1,10 @@
 import { memo } from 'react'
-import { LayoutDashboard, Moon, Settings, Sun } from 'lucide-react'
+import { LayoutDashboard, LogOut, Moon, Settings, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { ROUTES } from '@/constants'
 import { BrandLogo } from '@/components/layout/BrandLogo'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { PropertySwitcher } from '@/components/layout/PropertySwitcher'
 import { InstallPrompt } from '@/components/layout/InstallPrompt'
@@ -14,17 +15,31 @@ import { usePropertyLabel } from '@/context/PropertyContext'
 export const AppHeader = memo(function AppHeader() {
   const { resolvedTheme, setTheme } = useTheme()
   const propertyLabel = usePropertyLabel()
+  const { pathname } = useLocation()
   const isDark = resolvedTheme === 'dark'
+  const isAdmin =
+    pathname === ROUTES.admin || pathname.startsWith(`${ROUTES.admin}/`)
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/50 bg-background/90 backdrop-blur-xl safe-area-top">
       <div className="mx-auto w-full max-w-6xl safe-area-x py-4 sm:py-5 lg:px-8">
         <div className="flex items-center justify-between gap-4">
-          <BrandLogo
-            variant="full"
-            subtitle={propertyLabel}
-            className="min-w-0 flex-1"
-          />
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <BrandLogo
+              variant="full"
+              subtitle={propertyLabel}
+              className="min-w-0"
+            />
+            {isAdmin ? (
+              <Badge
+                variant="accent"
+                className="shrink-0"
+                title="You are in Admin mode"
+              >
+                Admin
+              </Badge>
+            ) : null}
+          </div>
 
           <div className="flex shrink-0 items-center gap-1">
             <div className="mr-1 hidden md:block">
@@ -43,17 +58,36 @@ export const AppHeader = memo(function AppHeader() {
                 <Settings className="h-5 w-5" aria-hidden="true" />
               </Link>
             </Button>
-            <Button
-              asChild
-              variant="ghost"
-              size="icon"
-              className="touch-target hidden rounded-2xl sm:inline-flex"
-              aria-label="Open admin dashboard"
-            >
-              <Link to={ROUTES.admin}>
-                <LayoutDashboard className="h-5 w-5" aria-hidden="true" />
-              </Link>
-            </Button>
+
+            {isAdmin ? (
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="touch-target rounded-2xl px-2.5 sm:px-3.5"
+                aria-label="Exit admin"
+                title="Exit Admin"
+              >
+                <Link to={ROUTES.home}>
+                  <LogOut className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">Exit Admin</span>
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                asChild
+                variant="ghost"
+                className="touch-target rounded-2xl px-2.5 sm:h-12 sm:px-3.5"
+                aria-label="Open admin"
+                title="Admin"
+              >
+                <Link to={ROUTES.admin}>
+                  <LayoutDashboard className="h-5 w-5" aria-hidden="true" />
+                  <span className="hidden sm:inline">Admin</span>
+                </Link>
+              </Button>
+            )}
+
             <Button
               variant="ghost"
               size="icon"
