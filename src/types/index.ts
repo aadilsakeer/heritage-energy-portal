@@ -62,6 +62,9 @@ export interface Bill {
   publishedAt: string | null
   createdAt: string
   updatedAt: string
+  isLocked: boolean
+  lockedAt: string | null
+  lockedBy: string | null
 }
 
 export interface BillEvent {

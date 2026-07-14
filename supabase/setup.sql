@@ -503,6 +503,11 @@ create index if not exists payments_bill_payment_date_idx
   on public.payments (bill_id, payment_date);
 
 -- =============================================================================
+-- v4.0 production tables: apply supabase/migrations/012_v4_production.sql
+-- (app_settings, account_adjustments, reminder_history, audit_events, bill locks)
+-- =============================================================================
+
+-- =============================================================================
 -- Verification
 -- =============================================================================
 

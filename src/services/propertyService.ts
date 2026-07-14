@@ -42,3 +42,56 @@ export async function fetchBillingConfiguration(
   if (error) throw new Error(getSupabaseErrorMessage(error))
   return data ? mapBillingConfig(data) : null
 }
+
+export async function updateBillingConfiguration(
+  propertyId: string,
+  input: { rate: number; discountPercent: number; fixedCharge: number },
+): Promise<BillingConfiguration> {
+  const existing = await fetchBillingConfiguration(propertyId)
+  if (!existing) {
+    const { data, error } = await supabase
+      .from('billing_configuration')
+      .insert({
+        property_id: propertyId,
+        rate: input.rate,
+        discount_percent: input.discountPercent,
+        fixed_charge: input.fixedCharge,
+        effective_from: new Date().toISOString().slice(0, 10),
+      })
+      .select('*')
+      .single()
+    if (error) throw new Error(getSupabaseErrorMessage(error))
+    return mapBillingConfig(data)
+  }
+
+  const { data, error } = await supabase
+    .from('billing_configuration')
+    .update({
+      rate: input.rate,
+      discount_percent: input.discountPercent,
+      fixed_charge: input.fixedCharge,
+    })
+    .eq('id', existing.id)
+    .select('*')
+    .single()
+
+  if (error) throw new Error(getSupabaseErrorMessage(error))
+  return mapBillingConfig(data)
+}
+
+export async function updatePropertyConsumerNumber(
+  propertyId: string,
+  consumerNumber: string | null,
+): Promise<Property> {
+  const { data, error } = await supabase
+    .from('properties')
+    .update({
+      consumer_number: consumerNumber?.replace(/\D/g, '') || null,
+    })
+    .eq('id', propertyId)
+    .select('*')
+    .single()
+
+  if (error) throw new Error(getSupabaseErrorMessage(error))
+  return mapProperty(data)
+}

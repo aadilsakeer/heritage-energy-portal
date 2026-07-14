@@ -1,14 +1,15 @@
 import { APP_NAME, BRAND } from '@/constants'
-import { fetchCustomerLedger } from '@/services/accountService'
+import { fetchCustomerLedger, fetchPropertyAccount } from '@/services/accountService'
+import { fetchPortalSettings } from '@/services/settingsService'
 import type { Property } from '@/types'
 import { formatCurrency, formatDate, formatDateTime } from '@/utils/format'
 
-async function loadBrandLogo(): Promise<{
+async function loadBrandLogo(logoPath: string): Promise<{
   dataUrl: string
   width: number
   height: number
 }> {
-  const response = await fetch(BRAND.logo)
+  const response = await fetch(logoPath || BRAND.logo)
   if (!response.ok) throw new Error('Failed to load brand logo')
 
   const blob = await response.blob()
@@ -38,14 +39,16 @@ export async function generateStatementPdf(
   property: Property,
   options: StatementOptions = {},
 ): Promise<void> {
-  const [{ jsPDF }, logo, ledger] = await Promise.all([
+  const [{ jsPDF }, settings, account, ledger] = await Promise.all([
     import('jspdf'),
-    loadBrandLogo(),
+    fetchPortalSettings(),
+    fetchPropertyAccount(property.id),
     fetchCustomerLedger(property.id, {
       fromDate: options.fromDate,
       toDate: options.toDate,
     }),
   ])
+  const logo = await loadBrandLogo(settings.logoPath)
 
   const doc = new jsPDF()
   const margin = 16
@@ -68,12 +71,21 @@ export async function generateStatementPdf(
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(20)
   doc.setFontSize(14)
-  doc.text(property.label, margin, y)
+  doc.text(settings.companyName || APP_NAME, margin, y)
 
   y += 8
+  doc.setFontSize(12)
+  doc.text(property.label, margin, y)
+
+  y += 7
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
   doc.setTextColor(60)
+  if (property.consumerNumber) {
+    doc.text(`Consumer No: ${property.consumerNumber}`, margin, y)
+    y += 6
+  }
+
   const rangeLabel =
     options.fromDate || options.toDate
       ? `${options.fromDate ? formatDate(options.fromDate) : '…'} – ${options.toDate ? formatDate(options.toDate) : '…'}`
@@ -87,13 +99,19 @@ export async function generateStatementPdf(
   doc.text('Account Summary', margin, y)
   doc.setFont('helvetica', 'normal')
   y += 8
-  doc.text('Opening Balance', margin, y)
-  doc.text(formatCurrency(ledger.openingBalance), right, y, { align: 'right' })
-  y += 7
-  doc.text('Closing Balance', margin, y)
-  doc.text(formatCurrency(ledger.closingBalance), right, y, { align: 'right' })
+  const summaryRows: Array<[string, string]> = [
+    ['Opening Balance', formatCurrency(ledger.openingBalance)],
+    ['Closing Balance', formatCurrency(ledger.closingBalance)],
+    ['Outstanding', formatCurrency(account.outstanding)],
+    ['Credits Outstanding', formatCurrency(account.creditsOutstanding)],
+  ]
+  for (const [label, value] of summaryRows) {
+    doc.text(label, margin, y)
+    doc.text(value, right, y, { align: 'right' })
+    y += 7
+  }
 
-  y += 12
+  y += 8
   doc.setFont('helvetica', 'bold')
   doc.text('Transactions', margin, y)
   y += 8
@@ -154,20 +172,18 @@ export async function generateStatementPdf(
   doc.setFontSize(9)
   doc.setTextColor(110)
   doc.text(
-    `${APP_NAME} · Statement of Account · Property account ledger`,
+    `${settings.companyName || APP_NAME} · Statement of Account · Property account ledger`,
     margin,
     y,
   )
   y += 5
   doc.text(
-    'Outstanding is calculated from bills, payments, and credits. History is never deleted.',
+    'Outstanding is calculated from bills, payments, credits, and adjustments.',
     margin,
     y,
   )
 
   const fromSlug = (options.fromDate ?? 'all').slice(0, 10)
   const toSlug = (options.toDate ?? 'all').slice(0, 10)
-  doc.save(
-    `SOA-${property.slug}-${fromSlug}-${toSlug}.pdf`,
-  )
+  doc.save(`SOA-${property.slug}-${fromSlug}-${toSlug}.pdf`)
 }

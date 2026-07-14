@@ -20,6 +20,8 @@ export const ROUTES = {
   bill: '/bill',
   history: '/history',
   analytics: '/analytics',
+  account: '/account',
+  settings: '/settings',
   admin: '/admin',
 } as const
 

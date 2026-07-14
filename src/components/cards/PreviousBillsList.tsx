@@ -57,7 +57,12 @@ export function PreviousBillsList({ rows }: PreviousBillsListProps) {
                       >
                         {formatAccountDisplayStatus(row.displayStatus)}
                       </Badge>
-                      {row.isOverdue ? (
+                      {row.isCritical ? (
+                        <Badge className="border-0 bg-red-600/20 text-red-800 dark:text-red-200">
+                          <AlertTriangle className="mr-1 h-3 w-3" aria-hidden />
+                          Critical · {row.overdueDays}d
+                        </Badge>
+                      ) : row.isOverdue ? (
                         <Badge className="border-0 bg-red-500/10 text-red-700 dark:text-red-300">
                           <AlertTriangle className="mr-1 h-3 w-3" aria-hidden />
                           {row.overdueDays}d overdue

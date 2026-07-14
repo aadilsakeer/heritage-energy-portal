@@ -23,6 +23,8 @@ export function preloadTabRoutes(): void {
 
 export function preloadAdminRoute(): void {
   void import('@/pages/Admin')
+  void import('@/pages/Account')
+  void import('@/pages/Settings')
 }
 
 export function preloadAdjacentTab(currentPath: string): void {

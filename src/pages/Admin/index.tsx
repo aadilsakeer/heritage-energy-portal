@@ -11,6 +11,7 @@ import { BillReviewForm } from '@/components/admin/BillReviewForm'
 import { CreditSection } from '@/components/admin/CreditSection'
 import { BrandLogo } from '@/components/layout/BrandLogo'
 import { AccountMetricsGrid } from '@/components/cards/AccountMetricsGrid'
+import { OutstandingBillsTable } from '@/components/account/OutstandingBillsTable'
 import { RecentUploadCard } from '@/components/admin/RecentUploadCard'
 import { UploadSuccessCard } from '@/components/admin/UploadSuccessCard'
 import { PaymentRequestsSection } from '@/components/admin/PaymentRequestsSection'
@@ -49,7 +50,13 @@ import { fetchBillEvents } from '@/services/eventService'
 import { fetchBillingConfiguration } from '@/services/propertyService'
 import { fetchPayments } from '@/services/paymentService'
 import { fetchCreditsForProperty } from '@/services/creditService'
-import { fetchPropertyAccount } from '@/services/accountService'
+import { fetchPropertyAccount, fetchAllPropertyAccounts } from '@/services/accountService'
+import { closeBillingMonth, reopenBill } from '@/services/closingService'
+import { Link } from 'react-router-dom'
+import { ROUTES } from '@/constants'
+import { formatCurrency } from '@/utils/format'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { fetchPendingPaymentRequests } from '@/services/paymentRequestService'
 import { toUploadItem } from '@/utils/mappers'
 
@@ -139,6 +146,11 @@ export function AdminPage() {
   )
 
   const {
+    data: propertyOverview,
+    reload: reloadPropertyOverview,
+  } = useAsync(async () => fetchAllPropertyAccounts(properties), [properties])
+
+  const {
     data: paymentRequests,
     reload: reloadPaymentRequests,
   } = useAsync(async () => fetchPendingPaymentRequests(), [])
@@ -152,6 +164,7 @@ export function AdminPage() {
       reloadPayments(),
       reloadCredits(),
       reloadPropertyAccount(),
+      reloadPropertyOverview(),
       reloadPaymentRequests(),
       refreshNotifications(),
     ])
@@ -164,6 +177,7 @@ export function AdminPage() {
     reloadPayments,
     reloadCredits,
     reloadPropertyAccount,
+    reloadPropertyOverview,
     reloadPaymentRequests,
     refreshNotifications,
     triggerRefresh,
@@ -365,6 +379,140 @@ export function AdminPage() {
             variant="admin"
           />
         ) : null}
+
+        {propertyOverview && propertyOverview.length > 0 ? (
+          <section className="space-y-3">
+            <SectionHeader
+              title="Property Overview"
+              description="All properties at a glance"
+            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              {propertyOverview.map(({ property: item, account }) => (
+                <Card key={item.id} className="surface-card">
+                  <CardContent className="space-y-3 p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-semibold">{item.label}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.consumerNumber ?? item.slug}
+                        </p>
+                      </div>
+                      <Badge
+                        className={
+                          account.collectionStatus === 'Critical'
+                            ? 'border-0 bg-red-600/20 text-red-800 dark:text-red-200'
+                            : account.collectionStatus === 'Overdue'
+                              ? 'border-0 bg-red-500/15 text-red-700 dark:text-red-300'
+                              : account.collectionStatus === 'Clear'
+                                ? 'border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                : 'border-0 bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                        }
+                      >
+                        {account.collectionStatus}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Current Bill</p>
+                        <p className="font-medium">
+                          {formatCurrency(account.currentBillAmount)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Outstanding</p>
+                        <p className="font-medium">
+                          {formatCurrency(account.outstanding)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Last Payment</p>
+                        <p className="font-medium">
+                          {account.lastPayment
+                            ? formatCurrency(account.lastPayment.amount)
+                            : '—'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Credits</p>
+                        <p className="font-medium">
+                          {formatCurrency(account.credits)}
+                        </p>
+                      </div>
+                    </div>
+                    <Button asChild variant="outline" size="sm">
+                      <Link
+                        to={ROUTES.account}
+                        onClick={() => setPropertyId(item.id)}
+                      >
+                        Open Account
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {propertyAccount && propertyAccount.unpaidBills.length > 0 ? (
+          <section className="space-y-3">
+            <SectionHeader title="Outstanding Bills" />
+            <OutstandingBillsTable rows={propertyAccount.unpaidBills} />
+          </section>
+        ) : null}
+
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link to={ROUTES.settings}>Settings</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to={ROUTES.account}>Property Account</Link>
+          </Button>
+          {activeBill?.isLocked ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                void reopenBill(activeBill.id)
+                  .then(() => {
+                    notify.success('Bill reopened')
+                    void refreshAll()
+                  })
+                  .catch((err: unknown) =>
+                    notify.error(
+                      err instanceof Error ? err.message : 'Reopen failed',
+                    ),
+                  )
+              }}
+            >
+              Reopen Locked Bill
+            </Button>
+          ) : activeBill ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                void closeBillingMonth(
+                  activeBill.propertyId,
+                  activeBill.billingMonth,
+                )
+                  .then(() => {
+                    notify.success('Month closed')
+                    void refreshAll()
+                  })
+                  .catch((err: unknown) =>
+                    notify.error(
+                      err instanceof Error ? err.message : 'Close failed',
+                    ),
+                  )
+              }}
+            >
+              Close Bill Month
+            </Button>
+          ) : null}
+        </div>
 
         <PaymentRequestsSection
           requests={paymentRequests ?? []}

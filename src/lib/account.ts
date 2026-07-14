@@ -9,14 +9,26 @@ export const UNPAID_STATUSES: BillStatus[] = [
   'partially_paid',
 ]
 
+export const DEFAULT_CRITICAL_OVERDUE_DAYS = 30
+
+export type OverdueStage = 'pending' | 'overdue' | 'critical'
+
 export type AccountDisplayStatus =
   | 'Paid'
   | 'Unpaid'
   | 'Partially Paid'
   | 'Overdue'
+  | 'Critical'
   | 'Pending Verification'
   | 'Draft'
   | 'Archived'
+
+export type CollectionStatus =
+  | 'Current'
+  | 'Pending'
+  | 'Overdue'
+  | 'Critical'
+  | 'Clear'
 
 export interface BillBalanceRow {
   bill: Bill
@@ -27,7 +39,9 @@ export interface BillBalanceRow {
   totalPaid: number
   balance: number
   isOverdue: boolean
+  isCritical: boolean
   overdueDays: number
+  overdueStage: OverdueStage
   displayStatus: AccountDisplayStatus
 }
 
@@ -40,9 +54,14 @@ export interface OutstandingBreakdown {
   dueDate: string | null
   status: AccountDisplayStatus
   isOverdue: boolean
+  isCritical: boolean
   overdueDays: number
+  overdueStage: OverdueStage
   currentBillId: string | null
   accountCredit: number
+  collectionStatus: CollectionStatus
+  lastPaymentAmount: number | null
+  pendingBills: number
 }
 
 export interface BillAccountSummary {
@@ -68,22 +87,42 @@ export interface PropertyAccountSummary {
   totalDue: number
   status: AccountDisplayStatus
   isOverdue: boolean
+  isCritical: boolean
   overdueDays: number
+  overdueStage: OverdueStage
   unpaidBills: BillBalanceRow[]
   collected: number
   overdueAmount: number
   overdueBillCount: number
+  criticalAmount: number
+  criticalBillCount: number
   collectionPercent: number
   creditsOutstanding: number
+  collectionStatus: CollectionStatus
+  averagePaymentDelayDays: number
 }
 
 export type LedgerTransactionType =
   | 'bill_published'
   | 'payment'
   | 'credit'
+  | 'credit_applied'
   | 'adjustment'
   | 'manual_credit'
   | 'carry_forward'
+  | 'reminder'
+  | 'bill_closed'
+
+export interface AccountAdjustment {
+  id: string
+  propertyId: string
+  billId: string | null
+  amount: number
+  reason: string
+  notes: string | null
+  createdAt: string
+  createdBy: string | null
+}
 
 export interface LedgerEntry {
   id: string
@@ -95,6 +134,7 @@ export interface LedgerEntry {
   runningBalance: number
   billId: string | null
   referenceId: string | null
+  reference?: string | null
 }
 
 export function todayIsoDate(): string {
@@ -113,24 +153,40 @@ export function getOverdueDays(
   return Math.max(0, Math.floor((asOfMs - dueMs) / 86_400_000))
 }
 
+export function getOverdueStage(
+  dueDate: string | null | undefined,
+  balance: number,
+  criticalDays = DEFAULT_CRITICAL_OVERDUE_DAYS,
+  asOf = todayIsoDate(),
+): OverdueStage {
+  if (balance <= 0) return 'pending'
+  const days = getOverdueDays(dueDate, asOf)
+  if (days <= 0) return 'pending'
+  if (days >= criticalDays) return 'critical'
+  return 'overdue'
+}
+
 export function isBillOverdue(
   dueDate: string | null | undefined,
   balance: number,
   asOf = todayIsoDate(),
 ): boolean {
-  if (balance <= 0 || !dueDate) return false
-  return dueDate.slice(0, 10) < asOf
+  return getOverdueStage(dueDate, balance, DEFAULT_CRITICAL_OVERDUE_DAYS, asOf) !==
+    'pending'
 }
 
 export function getAccountDisplayStatus(
   bill: Bill,
   balance: number,
   asOf = todayIsoDate(),
+  criticalDays = DEFAULT_CRITICAL_OVERDUE_DAYS,
 ): AccountDisplayStatus {
   if (bill.status === 'draft') return 'Draft'
   if (bill.status === 'archived') return 'Archived'
   if (balance <= 0) return 'Paid'
-  if (isBillOverdue(bill.dueDate, balance, asOf)) return 'Overdue'
+  const stage = getOverdueStage(bill.dueDate, balance, criticalDays, asOf)
+  if (stage === 'critical') return 'Critical'
+  if (stage === 'overdue') return 'Overdue'
   if (bill.status === 'payment_pending_verification') {
     return 'Pending Verification'
   }
@@ -140,7 +196,6 @@ export function getAccountDisplayStatus(
   ) {
     return 'Partially Paid'
   }
-  if (bill.status === 'paid' && balance > 0) return 'Unpaid'
   return 'Unpaid'
 }
 
@@ -160,13 +215,32 @@ export function formatAccountDisplayStatus(
   return status
 }
 
+export function toCollectionStatus(
+  unpaid: BillBalanceRow[],
+  outstanding: number,
+): CollectionStatus {
+  if (outstanding <= 0) return 'Clear'
+  if (unpaid.some((row) => row.overdueStage === 'critical')) return 'Critical'
+  if (unpaid.some((row) => row.overdueStage === 'overdue')) return 'Overdue'
+  if (unpaid.length > 0) return 'Pending'
+  return 'Current'
+}
+
 export function toBillBalanceRow(
   bill: Bill,
   payments: Payment[],
   asOf = todayIsoDate(),
+  criticalDays = DEFAULT_CRITICAL_OVERDUE_DAYS,
 ): BillBalanceRow {
   const summary = computePaymentSummary(bill, payments)
-  const isOverdue = isBillOverdue(bill.dueDate, summary.balance, asOf)
+  const overdueDays =
+    summary.balance > 0 ? getOverdueDays(bill.dueDate, asOf) : 0
+  const overdueStage = getOverdueStage(
+    bill.dueDate,
+    summary.balance,
+    criticalDays,
+    asOf,
+  )
   return {
     bill,
     payments,
@@ -175,9 +249,16 @@ export function toBillBalanceRow(
     finalAmount: summary.finalAmount,
     totalPaid: summary.totalPaid,
     balance: summary.balance,
-    isOverdue,
-    overdueDays: isOverdue ? getOverdueDays(bill.dueDate, asOf) : 0,
-    displayStatus: getAccountDisplayStatus(bill, summary.balance, asOf),
+    isOverdue: overdueStage !== 'pending',
+    isCritical: overdueStage === 'critical',
+    overdueDays,
+    overdueStage,
+    displayStatus: getAccountDisplayStatus(
+      bill,
+      summary.balance,
+      asOf,
+      criticalDays,
+    ),
   }
 }
 
@@ -185,6 +266,7 @@ export function computeOutstandingBreakdown(
   rows: BillBalanceRow[],
   currentBillId: string | null,
   accountCredit = 0,
+  lastPaymentAmount: number | null = null,
 ): OutstandingBreakdown {
   const unpaid = rows.filter((row) => row.balance > 0)
   const current = currentBillId
@@ -201,6 +283,12 @@ export function computeOutstandingBreakdown(
   const creditApplied = current?.creditApplied ?? 0
   const currentBillAmount = current?.finalAmount ?? 0
   const totalDue = Math.max(0, roundMoney(totalOutstanding))
+  const overdueDays =
+    unpaid.length > 0 ? Math.max(...unpaid.map((row) => row.overdueDays)) : 0
+  const overdueStage =
+    unpaid.find((row) => row.overdueStage === 'critical')?.overdueStage ??
+    unpaid.find((row) => row.overdueStage === 'overdue')?.overdueStage ??
+    'pending'
 
   return {
     totalOutstanding,
@@ -215,30 +303,18 @@ export function computeOutstandingBreakdown(
         : current
           ? getAccountDisplayStatus(current.bill, totalDue)
           : 'Paid',
-    isOverdue: (() => {
-      if (totalDue <= 0) return false
-      // Overdue if any unpaid portion is past due (prefer oldest due date)
-      const overdueRow = unpaid.find((row) => row.isOverdue)
-      if (overdueRow) return true
-      return current
-        ? isBillOverdue(current.bill.dueDate, totalDue)
-        : false
-    })(),
-    overdueDays: (() => {
-      const overdueRows = unpaid.filter((row) => row.isOverdue)
-      if (overdueRows.length === 0) return 0
-      return Math.max(...overdueRows.map((row) => row.overdueDays))
-    })(),
+    isOverdue: overdueStage !== 'pending',
+    isCritical: overdueStage === 'critical',
+    overdueDays,
+    overdueStage,
     currentBillId: current?.bill.id ?? null,
     accountCredit,
+    collectionStatus: toCollectionStatus(unpaid, totalOutstanding),
+    lastPaymentAmount,
+    pendingBills: unpaid.length,
   }
 }
 
-/**
- * Bill-level account lines.
- * Opening = carry-forward from older unpaid balances.
- * Closing = opening + charges − credits − payments.
- */
 export function computeBillAccountSummary(
   bill: Bill,
   payments: Payment[],
@@ -269,10 +345,6 @@ export interface FifoAllocationPlan {
   billingMonth: string
 }
 
-/**
- * Allocate a payment amount across unpaid bills oldest-first (FIFO).
- * Never applies to a newer bill while an older bill still has balance.
- */
 export function planFifoAllocation(
   unpaidOldestFirst: BillBalanceRow[],
   amount: number,
@@ -295,10 +367,8 @@ export function planFifoAllocation(
     remaining = roundMoney(remaining - apply)
   }
 
-  // Overpayment beyond all unpaid bills lands on the newest unpaid / latest bill
   if (remaining > 0) {
-    const target =
-      unpaidOldestFirst[unpaidOldestFirst.length - 1] ?? null
+    const target = unpaidOldestFirst[unpaidOldestFirst.length - 1] ?? null
     if (target) {
       const last = plans[plans.length - 1]
       if (last && last.billId === target.bill.id) {
@@ -320,6 +390,7 @@ export function buildCustomerLedger(input: {
   bills: Bill[]
   paymentsByBillId: Map<string, Payment[]>
   credits: CustomerCredit[]
+  adjustments?: AccountAdjustment[]
 }): LedgerEntry[] {
   const events: Array<Omit<LedgerEntry, 'runningBalance'>> = []
 
@@ -328,12 +399,7 @@ export function buildCustomerLedger(input: {
   )
 
   for (const bill of billsAsc) {
-    if (
-      bill.status === 'draft' ||
-      !bill.publishedAt
-    ) {
-      continue
-    }
+    if (bill.status === 'draft' || !bill.publishedAt) continue
 
     const charges = bill.tenantTotal ?? 0
     if (charges > 0) {
@@ -346,6 +412,7 @@ export function buildCustomerLedger(input: {
         credit: 0,
         billId: bill.id,
         referenceId: bill.id,
+        reference: bill.invoiceNumber ?? bill.id.slice(0, 8),
       })
     }
 
@@ -354,11 +421,12 @@ export function buildCustomerLedger(input: {
         id: `bill-credit-${bill.id}`,
         date: (bill.publishedAt ?? bill.createdAt).slice(0, 10),
         description: `Credit Applied · ${bill.billingMonth.slice(0, 7)}`,
-        type: 'credit',
+        type: 'credit_applied',
         debit: 0,
         credit: roundMoney(bill.creditApplied),
         billId: bill.id,
         referenceId: bill.id,
+        reference: bill.invoiceNumber,
       })
     }
 
@@ -373,14 +441,27 @@ export function buildCustomerLedger(input: {
         credit: roundMoney(payment.amount),
         billId: bill.id,
         referenceId: payment.id,
+        reference: payment.reference,
+      })
+    }
+
+    if (bill.isLocked && bill.lockedAt) {
+      events.push({
+        id: `closed-${bill.id}`,
+        date: bill.lockedAt.slice(0, 10),
+        description: `Bill Closed · ${bill.billingMonth.slice(0, 7)}`,
+        type: 'bill_closed',
+        debit: 0,
+        credit: 0,
+        billId: bill.id,
+        referenceId: bill.id,
+        reference: bill.invoiceNumber,
       })
     }
   }
 
   for (const credit of input.credits) {
     if (credit.status === 'cancelled') continue
-    // Overpayment is already reflected in the payment credit leg.
-    // Applied bill credits appear via bill.creditApplied.
     if (credit.reason === 'Overpayment') continue
     if (credit.billId && credit.status === 'used') continue
 
@@ -396,6 +477,22 @@ export function buildCustomerLedger(input: {
       credit: roundMoney(credit.amount),
       billId: credit.billId,
       referenceId: credit.id,
+      reference: credit.id.slice(0, 8),
+    })
+  }
+
+  for (const adjustment of input.adjustments ?? []) {
+    const isDebit = adjustment.amount > 0
+    events.push({
+      id: `adj-${adjustment.id}`,
+      date: adjustment.createdAt.slice(0, 10),
+      description: `Adjustment · ${adjustment.reason}`,
+      type: 'adjustment',
+      debit: isDebit ? roundMoney(adjustment.amount) : 0,
+      credit: isDebit ? 0 : roundMoney(Math.abs(adjustment.amount)),
+      billId: adjustment.billId,
+      referenceId: adjustment.id,
+      reference: adjustment.id.slice(0, 8),
     })
   }
 
@@ -412,16 +509,40 @@ export function buildCustomerLedger(input: {
   })
 }
 
+export function filterLedgerEntries(
+  entries: LedgerEntry[],
+  options?: {
+    fromDate?: string | null
+    toDate?: string | null
+    types?: LedgerTransactionType[] | null
+    search?: string | null
+  },
+): LedgerEntry[] {
+  const search = options?.search?.trim().toLowerCase() ?? ''
+  return entries.filter((entry) => {
+    if (options?.fromDate && entry.date < options.fromDate.slice(0, 10)) {
+      return false
+    }
+    if (options?.toDate && entry.date > options.toDate.slice(0, 10)) {
+      return false
+    }
+    if (options?.types && options.types.length > 0) {
+      if (!options.types.includes(entry.type)) return false
+    }
+    if (search) {
+      const hay = `${entry.description} ${entry.reference ?? ''} ${entry.type}`.toLowerCase()
+      if (!hay.includes(search)) return false
+    }
+    return true
+  })
+}
+
 export function filterLedgerByDateRange(
   entries: LedgerEntry[],
   fromDate?: string | null,
   toDate?: string | null,
 ): LedgerEntry[] {
-  return entries.filter((entry) => {
-    if (fromDate && entry.date < fromDate.slice(0, 10)) return false
-    if (toDate && entry.date > toDate.slice(0, 10)) return false
-    return true
-  })
+  return filterLedgerEntries(entries, { fromDate, toDate })
 }
 
 export function ledgerOpeningBalance(
@@ -432,4 +553,20 @@ export function ledgerOpeningBalance(
   const prior = allEntries.filter((entry) => entry.date < fromDate.slice(0, 10))
   if (prior.length === 0) return 0
   return prior[prior.length - 1]?.runningBalance ?? 0
+}
+
+export function computeAveragePaymentDelayDays(
+  rows: BillBalanceRow[],
+): number {
+  const delays: number[] = []
+  for (const row of rows) {
+    if (!row.bill.dueDate || row.payments.length === 0) continue
+    for (const payment of row.payments) {
+      const due = new Date(`${row.bill.dueDate.slice(0, 10)}T00:00:00`).getTime()
+      const paid = new Date(`${payment.paymentDate.slice(0, 10)}T00:00:00`).getTime()
+      delays.push(Math.max(0, Math.floor((paid - due) / 86_400_000)))
+    }
+  }
+  if (delays.length === 0) return 0
+  return roundMoney(delays.reduce((sum, d) => sum + d, 0) / delays.length)
 }

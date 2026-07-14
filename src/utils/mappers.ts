@@ -87,6 +87,11 @@ export function mapBill(row: BillRow): Bill {
     publishedAt: row.published_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    isLocked: Boolean(
+      (row as { is_locked?: boolean | null }).is_locked,
+    ),
+    lockedAt: (row as { locked_at?: string | null }).locked_at ?? null,
+    lockedBy: (row as { locked_by?: string | null }).locked_by ?? null,
   }
 }
 

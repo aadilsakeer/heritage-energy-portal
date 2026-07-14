@@ -152,6 +152,9 @@ export interface Database {
           published_at: string | null
           created_at: string
           updated_at: string
+          is_locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
         }
         Insert: {
           id?: string
@@ -183,6 +186,9 @@ export interface Database {
           published_at?: string | null
           created_at?: string
           updated_at?: string
+          is_locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
         }
         Update: {
           id?: string
@@ -214,6 +220,9 @@ export interface Database {
           published_at?: string | null
           created_at?: string
           updated_at?: string
+          is_locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
         }
         Relationships: [
           {
@@ -409,6 +418,148 @@ export interface Database {
           },
         ]
       }
+      app_settings: {
+        Row: {
+          key: string
+          value: Json
+          updated_at: string
+        }
+        Insert: {
+          key: string
+          value?: Json
+          updated_at?: string
+        }
+        Update: {
+          key?: string
+          value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      account_adjustments: {
+        Row: {
+          id: string
+          property_id: string
+          bill_id: string | null
+          amount: number
+          reason: string
+          notes: string | null
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          property_id: string
+          bill_id?: string | null
+          amount: number
+          reason: string
+          notes?: string | null
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          property_id?: string
+          bill_id?: string | null
+          amount?: number
+          reason?: string
+          notes?: string | null
+          created_at?: string
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'account_adjustments_property_id_fkey'
+            columns: ['property_id']
+            isOneToOne: false
+            referencedRelation: 'properties'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      reminder_history: {
+        Row: {
+          id: string
+          property_id: string
+          bill_id: string | null
+          stage: string
+          due_date: string | null
+          scheduled_for: string
+          status: string
+          message: string | null
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          property_id: string
+          bill_id?: string | null
+          stage: string
+          due_date?: string | null
+          scheduled_for: string
+          status?: string
+          message?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          property_id?: string
+          bill_id?: string | null
+          stage?: string
+          due_date?: string | null
+          scheduled_for?: string
+          status?: string
+          message?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'reminder_history_property_id_fkey'
+            columns: ['property_id']
+            isOneToOne: false
+            referencedRelation: 'properties'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      audit_events: {
+        Row: {
+          id: string
+          property_id: string | null
+          bill_id: string | null
+          entity_type: string
+          entity_id: string | null
+          action: string
+          actor: string | null
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          property_id?: string | null
+          bill_id?: string | null
+          entity_type: string
+          entity_id?: string | null
+          action: string
+          actor?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          property_id?: string | null
+          bill_id?: string | null
+          entity_type?: string
+          entity_id?: string | null
+          action?: string
+          actor?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
       customer_credits: {
         Row: {
           id: string
@@ -497,3 +648,13 @@ export type NotificationInsert =
   Database['public']['Tables']['notifications']['Insert']
 export type NotificationUpdate =
   Database['public']['Tables']['notifications']['Update']
+export type AppSettingsRow = Database['public']['Tables']['app_settings']['Row']
+export type AccountAdjustmentRow =
+  Database['public']['Tables']['account_adjustments']['Row']
+export type AccountAdjustmentInsert =
+  Database['public']['Tables']['account_adjustments']['Insert']
+export type ReminderHistoryRow =
+  Database['public']['Tables']['reminder_history']['Row']
+export type AuditEventRow = Database['public']['Tables']['audit_events']['Row']
+export type AuditEventInsert =
+  Database['public']['Tables']['audit_events']['Insert']

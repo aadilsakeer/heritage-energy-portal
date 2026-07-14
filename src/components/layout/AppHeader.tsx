@@ -33,10 +33,21 @@ export const AppHeader = memo(function AppHeader() {
               variant="ghost"
               size="icon"
               className="touch-target rounded-[16px]"
-              aria-label="Open admin settings"
+              aria-label="Open settings"
+            >
+              <Link to={ROUTES.settings}>
+                <Settings className="h-5 w-5" aria-hidden="true" />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="touch-target rounded-[16px] hidden sm:inline-flex"
+              aria-label="Open admin"
             >
               <Link to={ROUTES.admin}>
-                <Settings className="h-5 w-5" aria-hidden="true" />
+                <span className="text-xs font-semibold">Admin</span>
               </Link>
             </Button>
             <Button

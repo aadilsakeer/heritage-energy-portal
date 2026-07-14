@@ -1,16 +1,20 @@
 import {
   buildCustomerLedger,
+  computeAveragePaymentDelayDays,
   computeBillAccountSummary,
   computeOutstandingBreakdown,
-  filterLedgerByDateRange,
+  filterLedgerEntries,
   ledgerOpeningBalance,
   planFifoAllocation,
   toBillBalanceRow,
+  toCollectionStatus,
   UNPAID_STATUSES,
+  type AccountAdjustment,
   type BillAccountSummary,
   type BillBalanceRow,
   type FifoAllocationPlan,
   type LedgerEntry,
+  type LedgerTransactionType,
   type OutstandingBreakdown,
   type PropertyAccountSummary,
 } from '@/lib/account'
@@ -18,8 +22,31 @@ import { roundMoney } from '@/lib/credits'
 import { PAYABLE_STATUSES } from '@/lib/payments'
 import { getSupabaseErrorMessage, supabase } from '@/lib/supabase'
 import { fetchPropertyCreditBalance } from '@/services/creditService'
-import type { Bill, CustomerCredit, Payment } from '@/types'
+import { fetchPortalSettings } from '@/services/settingsService'
+import type { Bill, CustomerCredit, Payment, Property } from '@/types'
 import { mapBill, mapCustomerCredit, mapPayment } from '@/utils/mappers'
+
+function mapAdjustment(row: {
+  id: string
+  property_id: string
+  bill_id: string | null
+  amount: number
+  reason: string
+  notes: string | null
+  created_at: string
+  created_by: string | null
+}): AccountAdjustment {
+  return {
+    id: row.id,
+    propertyId: row.property_id,
+    billId: row.bill_id,
+    amount: Number(row.amount),
+    reason: row.reason,
+    notes: row.notes,
+    createdAt: row.created_at,
+    createdBy: row.created_by,
+  }
+}
 
 async function fetchPayableBills(propertyId: string): Promise<Bill[]> {
   const { data, error } = await supabase
@@ -69,13 +96,39 @@ async function fetchCredits(propertyId: string): Promise<CustomerCredit[]> {
   return (data ?? []).map(mapCustomerCredit)
 }
 
+export async function fetchAdjustmentsForProperty(
+  propertyId: string,
+): Promise<AccountAdjustment[]> {
+  const { data, error } = await supabase
+    .from('account_adjustments')
+    .select('*')
+    .eq('property_id', propertyId)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    // Table may not exist until migration — fail soft
+    if (error.message.toLowerCase().includes('account_adjustments')) return []
+    throw new Error(getSupabaseErrorMessage(error))
+  }
+  return (data ?? []).map(mapAdjustment)
+}
+
 export async function fetchBillBalanceRows(
   propertyId: string,
 ): Promise<BillBalanceRow[]> {
-  const bills = await fetchPayableBills(propertyId)
+  const [bills, settings] = await Promise.all([
+    fetchPayableBills(propertyId),
+    fetchPortalSettings().catch(() => null),
+  ])
   const paymentsByBill = await fetchPaymentsForBillIds(bills.map((b) => b.id))
+  const criticalDays = settings?.criticalOverdueDays ?? 30
   return bills.map((bill) =>
-    toBillBalanceRow(bill, paymentsByBill.get(bill.id) ?? []),
+    toBillBalanceRow(
+      bill,
+      paymentsByBill.get(bill.id) ?? [],
+      undefined,
+      criticalDays,
+    ),
   )
 }
 
@@ -88,11 +141,17 @@ export async function fetchOutstandingBreakdown(
   ])
 
   const current = rows[rows.length - 1] ?? null
+  const allPayments = rows.flatMap((row) => row.payments)
+  const lastPayment =
+    [...allPayments].sort((a, b) =>
+      b.paymentDate.localeCompare(a.paymentDate),
+    )[0] ?? null
 
   return computeOutstandingBreakdown(
     rows,
     current?.bill.id ?? null,
     accountCredit,
+    lastPayment?.amount ?? null,
   )
 }
 
@@ -108,10 +167,9 @@ export async function fetchUnpaidBillRows(
 export async function fetchPropertyAccount(
   propertyId: string,
 ): Promise<PropertyAccountSummary> {
-  const [rows, accountCredit, credits] = await Promise.all([
+  const [rows, accountCredit] = await Promise.all([
     fetchBillBalanceRows(propertyId),
     fetchPropertyCreditBalance(propertyId),
-    fetchCredits(propertyId),
   ])
 
   const unpaid = rows.filter((row) => row.balance > 0)
@@ -138,8 +196,12 @@ export async function fetchPropertyAccount(
     rows.reduce((sum, row) => sum + row.finalAmount, 0),
   )
   const overdueRows = unpaid.filter((row) => row.isOverdue)
+  const criticalRows = unpaid.filter((row) => row.isCritical)
   const overdueAmount = roundMoney(
     overdueRows.reduce((sum, row) => sum + row.balance, 0),
+  )
+  const criticalAmount = roundMoney(
+    criticalRows.reduce((sum, row) => sum + row.balance, 0),
   )
   const collectionPercent =
     billed > 0 ? roundMoney((collected / billed) * 100) : 0
@@ -150,9 +212,6 @@ export async function fetchPropertyAccount(
       .sort((a, b) =>
         (a.bill.dueDate ?? '').localeCompare(b.bill.dueDate ?? ''),
       )[0]?.bill.dueDate ?? null
-
-  // Credits created but not yet applied (wallet) — do not double-count used credits
-  void credits
 
   return {
     currentBill: current?.bill ?? null,
@@ -169,15 +228,24 @@ export async function fetchPropertyAccount(
     totalDue: outstandingBreakdown.totalDue,
     status: outstandingBreakdown.status,
     isOverdue: outstandingBreakdown.isOverdue,
+    isCritical: outstandingBreakdown.isCritical,
     overdueDays: outstandingBreakdown.overdueDays,
+    overdueStage: outstandingBreakdown.overdueStage,
     unpaidBills: unpaid.sort((a, b) =>
       b.bill.billingMonth.localeCompare(a.bill.billingMonth),
     ),
     collected,
     overdueAmount,
     overdueBillCount: overdueRows.length,
+    criticalAmount,
+    criticalBillCount: criticalRows.length,
     collectionPercent,
     creditsOutstanding: accountCredit,
+    collectionStatus: toCollectionStatus(
+      unpaid,
+      outstandingBreakdown.totalOutstanding,
+    ),
+    averagePaymentDelayDays: computeAveragePaymentDelayDays(rows),
   }
 }
 
@@ -207,30 +275,38 @@ export async function fetchBillAccountSummary(
 
 export async function fetchCustomerLedger(
   propertyId: string,
-  options?: { fromDate?: string | null; toDate?: string | null },
+  options?: {
+    fromDate?: string | null
+    toDate?: string | null
+    types?: LedgerTransactionType[] | null
+    search?: string | null
+  },
 ): Promise<{
   entries: LedgerEntry[]
+  allEntries: LedgerEntry[]
   openingBalance: number
   closingBalance: number
 }> {
-  const [bills, credits] = await Promise.all([
+  const [bills, credits, adjustments] = await Promise.all([
     fetchPayableBills(propertyId),
     fetchCredits(propertyId),
+    fetchAdjustmentsForProperty(propertyId),
   ])
   const paymentsByBillId = await fetchPaymentsForBillIds(bills.map((b) => b.id))
-  const allEntries = buildCustomerLedger({ bills, paymentsByBillId, credits })
+  const allEntries = buildCustomerLedger({
+    bills,
+    paymentsByBillId,
+    credits,
+    adjustments,
+  })
   const openingBalance = ledgerOpeningBalance(allEntries, options?.fromDate)
-  const entries = filterLedgerByDateRange(
-    allEntries,
-    options?.fromDate,
-    options?.toDate,
-  )
+  const entries = filterLedgerEntries(allEntries, options)
   const closingBalance =
     entries.length > 0
       ? entries[entries.length - 1].runningBalance
       : openingBalance
 
-  return { entries, openingBalance, closingBalance }
+  return { entries, allEntries, openingBalance, closingBalance }
 }
 
 export async function planPropertyFifoAllocation(
@@ -260,4 +336,60 @@ export async function planPropertyFifoAllocation(
   }
 
   return planFifoAllocation(unpaidOldestFirst, amount)
+}
+
+export interface PropertyOverviewRow {
+  property: Property
+  account: PropertyAccountSummary
+}
+
+export async function fetchAllPropertyAccounts(
+  properties: Property[],
+): Promise<PropertyOverviewRow[]> {
+  const accounts = await Promise.all(
+    properties.map(async (property) => ({
+      property,
+      account: await fetchPropertyAccount(property.id),
+    })),
+  )
+  return accounts
+}
+
+export async function createAccountAdjustment(input: {
+  propertyId: string
+  billId?: string | null
+  amount: number
+  reason: string
+  notes?: string
+}): Promise<AccountAdjustment> {
+  if (input.amount === 0) throw new Error('Adjustment amount cannot be zero')
+  if (!input.reason.trim()) throw new Error('Adjustment reason is required')
+
+  const { data, error } = await supabase
+    .from('account_adjustments')
+    .insert({
+      property_id: input.propertyId,
+      bill_id: input.billId ?? null,
+      amount: input.amount,
+      reason: input.reason.trim(),
+      notes: input.notes ?? null,
+      created_by: 'admin',
+    })
+    .select('*')
+    .single()
+
+  if (error) throw new Error(getSupabaseErrorMessage(error))
+
+  const { logAuditEvent } = await import('@/services/auditService')
+  await logAuditEvent({
+    propertyId: input.propertyId,
+    billId: input.billId ?? null,
+    entityType: 'adjustment',
+    entityId: data.id,
+    action: 'adjustment_created',
+    actor: 'admin',
+    metadata: { amount: input.amount, reason: input.reason },
+  })
+
+  return mapAdjustment(data)
 }

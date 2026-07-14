@@ -73,8 +73,30 @@ export async function createPayment(
 ): Promise<{ payment: Payment; bill: Bill }> {
   const bill = await fetchBillById(billId)
   if (!bill) throw new Error('Bill not found')
+  if (bill.isLocked) {
+    throw new Error(
+      'This bill is locked for monthly closing. Reopen it before recording payments.',
+    )
+  }
   if (bill.tenantTotal === null) {
     throw new Error('Bill must have a calculated total before recording payments')
+  }
+  if (input.amount <= 0) {
+    throw new Error('Payment amount must be greater than zero')
+  }
+
+  // Soft duplicate check (also enforced by DB unique index when migrated)
+  const existing = await fetchPayments(billId)
+  const duplicate = existing.find(
+    (payment) =>
+      payment.paymentDate === input.paymentDate &&
+      payment.amount === input.amount &&
+      (payment.reference ?? '') === (input.reference ?? ''),
+  )
+  if (duplicate) {
+    throw new Error(
+      'Duplicate payment detected for the same date, amount, and reference.',
+    )
   }
 
   const payload: PaymentInsert = {
@@ -92,12 +114,30 @@ export async function createPayment(
     .select('*')
     .single()
 
-  if (error) throw new Error(getSupabaseErrorMessage(error))
+  if (error) {
+    if (error.code === '23505') {
+      throw new Error(
+        'Duplicate payment detected for the same date, amount, and reference.',
+      )
+    }
+    throw new Error(getSupabaseErrorMessage(error))
+  }
 
   const payment = mapPayment(data)
   await logBillEvent(billId, 'payment_added', {
     paymentId: payment.id,
     amount: payment.amount,
+  })
+
+  const { logAuditEvent } = await import('@/services/auditService')
+  await logAuditEvent({
+    propertyId: bill.propertyId,
+    billId,
+    entityType: 'payment',
+    entityId: payment.id,
+    action: 'payment_added',
+    actor: 'admin',
+    metadata: { amount: payment.amount },
   })
 
   const { createNotification } = await import('@/services/notificationService')

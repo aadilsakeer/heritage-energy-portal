@@ -192,6 +192,11 @@ export async function saveReviewedBill(
 ): Promise<Bill> {
   const bill = await fetchBillById(billId)
   if (!bill) throw new Error('Bill not found')
+  if (bill.isLocked) {
+    throw new Error(
+      'This bill is locked for monthly closing. Reopen it before editing.',
+    )
+  }
 
   const config = await fetchBillingConfiguration(bill.propertyId)
   if (!config) throw new Error('Billing configuration not found')

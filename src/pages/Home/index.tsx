@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+import { ROUTES } from '@/constants'
 import {
   Activity,
   ArrowDownToLine,
@@ -7,6 +9,7 @@ import {
   Receipt,
   Sparkles,
   Sun,
+  WalletCards,
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AccountCreditCard } from '@/components/cards/AccountCreditCard'
@@ -106,9 +109,14 @@ export function HomePage() {
           dueDate: bill.dueDate ?? account.nextDue,
           status: account.status,
           isOverdue: account.isOverdue,
+          isCritical: account.isCritical,
           overdueDays: account.overdueDays,
+          overdueStage: account.overdueStage,
           currentBillId: bill.id,
           accountCredit,
+          collectionStatus: account.collectionStatus,
+          lastPaymentAmount: account.lastPayment?.amount ?? null,
+          pendingBills: account.pendingBills,
         },
       }
     },
@@ -240,10 +248,14 @@ export function HomePage() {
             <PreviousBillsList rows={account.unpaidBills} />
           ) : null}
 
-          <AccountCreditCard balance={accountCredit} />
-
-          {property ? (
-            <div className="flex justify-end">
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="default" size="sm">
+              <Link to={ROUTES.account}>
+                <WalletCards className="h-4 w-4" />
+                Open Account
+              </Link>
+            </Button>
+            {property ? (
               <Button
                 type="button"
                 variant="outline"
@@ -261,8 +273,10 @@ export function HomePage() {
                 <Download className="h-4 w-4" />
                 Statement of Account
               </Button>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
+
+          <AccountCreditCard balance={accountCredit} />
 
           <section aria-label="Savings">
             <SectionHeader

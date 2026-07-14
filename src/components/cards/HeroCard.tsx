@@ -69,6 +69,7 @@ export const HeroCard = memo(function HeroCard({
                     'Unpaid',
                     'Partially Paid',
                     'Overdue',
+                    'Critical',
                     'Pending Verification',
                     'Draft',
                     'Archived',
@@ -81,7 +82,9 @@ export const HeroCard = memo(function HeroCard({
                 {isOverdue && outstanding ? (
                   <Badge className="border-0 bg-red-500/25 text-primary-foreground">
                     <AlertTriangle className="mr-1 h-3 w-3" aria-hidden />
-                    {outstanding.overdueDays}d overdue
+                    {outstanding.isCritical
+                      ? `Critical · ${outstanding.overdueDays}d`
+                      : `${outstanding.overdueDays}d overdue`}
                   </Badge>
                 ) : null}
               </div>
