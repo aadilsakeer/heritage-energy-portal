@@ -115,7 +115,10 @@ export function SettingsPage() {
           </header>
 
           <section className="space-y-3">
-            <SectionHeader title="Company" />
+            <SectionHeader
+              title="Company"
+              description="Appears on invoices, statements, and downloads"
+            />
             <Card className="surface-card">
               <CardContent className="grid gap-4 p-5 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -140,6 +143,77 @@ export function SettingsPage() {
                       setDraftSettings({
                         ...settings,
                         logoPath: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="companyAddress">Address</Label>
+                  <Input
+                    id="companyAddress"
+                    value={settings.companyAddress}
+                    onChange={(e) =>
+                      setDraftSettings({
+                        ...settings,
+                        companyAddress: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyPhone">Phone</Label>
+                  <Input
+                    id="companyPhone"
+                    type="tel"
+                    value={settings.companyPhone}
+                    onChange={(e) =>
+                      setDraftSettings({
+                        ...settings,
+                        companyPhone: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyEmail">Email</Label>
+                  <Input
+                    id="companyEmail"
+                    type="email"
+                    value={settings.companyEmail}
+                    onChange={(e) =>
+                      setDraftSettings({
+                        ...settings,
+                        companyEmail: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="paymentInstructions">
+                    Payment Instructions
+                  </Label>
+                  <Input
+                    id="paymentInstructions"
+                    value={settings.paymentInstructions}
+                    onChange={(e) =>
+                      setDraftSettings({
+                        ...settings,
+                        paymentInstructions: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="termsAndConditions">
+                    Terms &amp; Conditions
+                  </Label>
+                  <Input
+                    id="termsAndConditions"
+                    value={settings.termsAndConditions}
+                    onChange={(e) =>
+                      setDraftSettings({
+                        ...settings,
+                        termsAndConditions: e.target.value,
                       })
                     }
                   />

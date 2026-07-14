@@ -5,6 +5,11 @@ import { getSupabaseErrorMessage, supabase } from '@/lib/supabase'
 export interface PortalSettings {
   companyName: string
   logoPath: string
+  companyAddress: string
+  companyPhone: string
+  companyEmail: string
+  paymentInstructions: string
+  termsAndConditions: string
   dueDays: number
   criticalOverdueDays: number
   reminderDaysBefore: number
@@ -17,6 +22,13 @@ export interface PortalSettings {
 export const DEFAULT_PORTAL_SETTINGS: PortalSettings = {
   companyName: APP_NAME,
   logoPath: BRAND.logo,
+  companyAddress: 'Heritage Solar · Kerala, India',
+  companyPhone: '',
+  companyEmail: '',
+  paymentInstructions:
+    'Please settle the outstanding amount on or before the due date. Reference the invoice number in your transfer notes.',
+  termsAndConditions:
+    'Security deposit and arrears are owner-paid and excluded from tenant total. Outstanding is calculated from bills, payments, and credits.',
   dueDays: 15,
   criticalOverdueDays: 30,
   reminderDaysBefore: 3,
@@ -26,20 +38,32 @@ export const DEFAULT_PORTAL_SETTINGS: PortalSettings = {
   themeDefault: 'system',
 }
 
+function asString(value: unknown, fallback: string): string {
+  return typeof value === 'string' ? value : fallback
+}
+
 function asSettings(value: Json | null | undefined): PortalSettings {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return { ...DEFAULT_PORTAL_SETTINGS }
   }
   const raw = value as Record<string, unknown>
   return {
-    companyName:
-      typeof raw.companyName === 'string'
-        ? raw.companyName
-        : DEFAULT_PORTAL_SETTINGS.companyName,
-    logoPath:
-      typeof raw.logoPath === 'string'
-        ? raw.logoPath
-        : DEFAULT_PORTAL_SETTINGS.logoPath,
+    companyName: asString(raw.companyName, DEFAULT_PORTAL_SETTINGS.companyName),
+    logoPath: asString(raw.logoPath, DEFAULT_PORTAL_SETTINGS.logoPath),
+    companyAddress: asString(
+      raw.companyAddress,
+      DEFAULT_PORTAL_SETTINGS.companyAddress,
+    ),
+    companyPhone: asString(raw.companyPhone, DEFAULT_PORTAL_SETTINGS.companyPhone),
+    companyEmail: asString(raw.companyEmail, DEFAULT_PORTAL_SETTINGS.companyEmail),
+    paymentInstructions: asString(
+      raw.paymentInstructions,
+      DEFAULT_PORTAL_SETTINGS.paymentInstructions,
+    ),
+    termsAndConditions: asString(
+      raw.termsAndConditions,
+      DEFAULT_PORTAL_SETTINGS.termsAndConditions,
+    ),
     dueDays:
       typeof raw.dueDays === 'number'
         ? raw.dueDays

@@ -103,6 +103,11 @@ export function AccountTimeline({
             <ul className="timeline-rail space-y-0 py-4 pr-4">
               {visible.map((entry) => {
                 const Icon = TYPE_ICON[entry.type] ?? FileText
+                const isPartialPayment =
+                  entry.type === 'payment' && entry.runningBalance > 0
+                const typeLabel = isPartialPayment
+                  ? 'Partial Payment'
+                  : entry.type.replace(/_/g, ' ')
                 return (
                   <li key={entry.id} className="relative pb-5 last:pb-0">
                     <span className="absolute left-0 top-1 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-card text-primary shadow-soft">
@@ -113,10 +118,18 @@ export function AccountTimeline({
                         <div className="min-w-0 space-y-1.5">
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="text-sm font-semibold tracking-tight">
-                              {entry.description}
+                              {isPartialPayment
+                                ? entry.description.replace(
+                                    /^Payment/,
+                                    'Partial Payment',
+                                  )
+                                : entry.description}
                             </p>
-                            <Badge variant="outline" className="capitalize">
-                              {entry.type.replace(/_/g, ' ')}
+                            <Badge
+                              variant={isPartialPayment ? 'accent' : 'outline'}
+                              className="capitalize"
+                            >
+                              {typeLabel}
                             </Badge>
                           </div>
                           <p className="text-caption">

@@ -39,7 +39,7 @@ import { Badge } from '@/components/ui/badge'
 import { downloadInvoice } from '@/utils/downloadInvoice'
 import { ROUTES } from '@/constants'
 
-import { formatCurrency, formatEnergy, formatMonthLabel } from '@/utils/format'
+import { formatCurrency, formatEnergy, formatInvoiceNumber, formatMonthLabel } from '@/utils/format'
 import { toBillBreakdown } from '@/utils/mappers'
 
 export function BillPage() {
@@ -231,12 +231,16 @@ export function BillPage() {
         >
           <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-medium text-primary">Bill Breakdown</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+              <p className="text-caption text-primary">Bill</p>
+              <h1 className="text-display mt-2">
                 {formatMonthLabel(bill.billingMonth)}
               </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {billProperty?.label ?? 'Property'} ·{' '}
+              <p className="text-caption mt-2">
+                {billProperty?.label ?? 'Property'}
+                {bill.invoiceNumber || bill.id
+                  ? ` · ${formatInvoiceNumber(bill)}`
+                  : ''}{' '}
+                ·{' '}
                 <Badge
                   variant={billStatusVariant[bill.status]}
                   className="ml-1 capitalize"
@@ -265,6 +269,8 @@ export function BillPage() {
             ) : null}
           </header>
 
+          {billSummary ? <BillSummaryCard summary={billSummary} /> : null}
+
           {canRequestPaymentVerification(bill.status) &&
           bill.status !== 'paid' &&
           paymentSummary &&
@@ -283,7 +289,7 @@ export function BillPage() {
           ) : null}
 
           <section aria-label="Energy and charges">
-            <SectionHeader title="Breakdown" />
+            <SectionHeader title="Current Charges" />
             <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2 lg:grid-cols-4 lg:gap-4">
               {cards.map((card, index) => (
                 <BreakdownCard
@@ -298,8 +304,6 @@ export function BillPage() {
               ))}
             </div>
           </section>
-
-          {billSummary ? <BillSummaryCard summary={billSummary} /> : null}
 
           <section aria-label="Owner paid amounts">
             <SectionHeader

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
 import { flushSync } from 'react-dom'
 import {
   Archive,
@@ -11,6 +11,7 @@ import { BillReviewForm } from '@/components/admin/BillReviewForm'
 import { CreditSection } from '@/components/admin/CreditSection'
 import { BrandLogo } from '@/components/layout/BrandLogo'
 import { AccountMetricsGrid } from '@/components/cards/AccountMetricsGrid'
+import { ChartCard } from '@/components/cards/ChartCard'
 import { OutstandingBillsTable } from '@/components/account/OutstandingBillsTable'
 import { RecentUploadCard } from '@/components/admin/RecentUploadCard'
 import { UploadSuccessCard } from '@/components/admin/UploadSuccessCard'
@@ -40,6 +41,7 @@ import {
   deleteDraftBill,
   duplicateBill,
   fetchBillById,
+  fetchBillHistory,
   fetchRecentUploads,
   publishBill,
   saveAiExtraction,
@@ -50,15 +52,32 @@ import { fetchBillEvents } from '@/services/eventService'
 import { fetchBillingConfiguration } from '@/services/propertyService'
 import { fetchPayments } from '@/services/paymentService'
 import { fetchCreditsForProperty } from '@/services/creditService'
-import { fetchPropertyAccount, fetchAllPropertyAccounts } from '@/services/accountService'
+import {
+  fetchCustomerLedger,
+  fetchPropertyAccount,
+  fetchAllPropertyAccounts,
+} from '@/services/accountService'
+import { buildAdminTrendCharts } from '@/services/analyticsService'
 import { closeBillingMonth, reopenBill } from '@/services/closingService'
 import { Link } from 'react-router-dom'
 import { ROUTES } from '@/constants'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatPercent } from '@/utils/format'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { fetchPendingPaymentRequests } from '@/services/paymentRequestService'
 import { toUploadItem } from '@/utils/mappers'
+
+const MonthlyBarChart = lazy(() =>
+  import('@/components/charts/MonthlyBarChart').then((module) => ({
+    default: module.MonthlyBarChart,
+  })),
+)
+
+const MonthlyLineChart = lazy(() =>
+  import('@/components/charts/MonthlyLineChart').then((module) => ({
+    default: module.MonthlyLineChart,
+  })),
+)
 
 export function AdminPage() {
   const {
@@ -151,6 +170,22 @@ export function AdminPage() {
   } = useAsync(async () => fetchAllPropertyAccounts(properties), [properties])
 
   const {
+    data: adminTrends,
+    reload: reloadAdminTrends,
+  } = useAsync(
+    async () => {
+      if (!propertyId) return null
+      const [bills, ledger] = await Promise.all([
+        fetchBillHistory(propertyId),
+        fetchCustomerLedger(propertyId),
+      ])
+      return buildAdminTrendCharts(bills, ledger.entries)
+    },
+    [propertyId],
+    Boolean(propertyId),
+  )
+
+  const {
     data: paymentRequests,
     reload: reloadPaymentRequests,
   } = useAsync(async () => fetchPendingPaymentRequests(), [])
@@ -165,6 +200,7 @@ export function AdminPage() {
       reloadCredits(),
       reloadPropertyAccount(),
       reloadPropertyOverview(),
+      reloadAdminTrends(),
       reloadPaymentRequests(),
       refreshNotifications(),
     ])
@@ -178,6 +214,7 @@ export function AdminPage() {
     reloadCredits,
     reloadPropertyAccount,
     reloadPropertyOverview,
+    reloadAdminTrends,
     reloadPaymentRequests,
     refreshNotifications,
     triggerRefresh,
@@ -380,6 +417,57 @@ export function AdminPage() {
           />
         ) : null}
 
+        {adminTrends &&
+        (adminTrends.paymentTrend.length > 0 ||
+          adminTrends.collectionTrend.length > 0) ? (
+          <section className="section-stack" aria-label="Enterprise trends">
+            <SectionHeader
+              title="Trends"
+              description="Collection, outstanding, payments, and solar savings"
+            />
+            <div className="grid gap-4 lg:grid-cols-2">
+              <ChartCard title="Collection %" description="Cumulative collected vs billed">
+                <Suspense fallback={<LoadingSkeleton variant="chart" />}>
+                  <MonthlyLineChart
+                    data={adminTrends.collectionTrend}
+                    color="var(--color-primary)"
+                    unit="%"
+                  />
+                </Suspense>
+              </ChartCard>
+              <ChartCard
+                title="Outstanding Trend"
+                description="Cumulative billed less payments"
+              >
+                <Suspense fallback={<LoadingSkeleton variant="chart" />}>
+                  <MonthlyLineChart
+                    data={adminTrends.outstandingTrend}
+                    color="var(--color-accent)"
+                    unit="₹"
+                  />
+                </Suspense>
+              </ChartCard>
+              <ChartCard title="Payment Trend" description="Payments received by month">
+                <Suspense fallback={<LoadingSkeleton variant="chart" />}>
+                  <MonthlyBarChart
+                    data={adminTrends.paymentTrend}
+                    color="var(--color-chart-3)"
+                    unit="₹"
+                  />
+                </Suspense>
+              </ChartCard>
+              <ChartCard title="Solar Savings" description="Discount applied by month">
+                <Suspense fallback={<LoadingSkeleton variant="chart" />}>
+                  <MonthlyBarChart
+                    data={adminTrends.solarSavings}
+                    unit="₹"
+                  />
+                </Suspense>
+              </ChartCard>
+            </div>
+          </section>
+        ) : null}
+
         {propertyOverview && propertyOverview.length > 0 ? (
           <section className="space-y-3">
             <SectionHeader
@@ -433,20 +521,36 @@ export function AdminPage() {
                         </p>
                       </div>
                       <div className="rounded-xl bg-muted/30 px-3 py-2.5">
+                        <p className="text-caption">Credits</p>
+                        <p className="mt-1 font-semibold tabular-nums">
+                          {formatCurrency(account.credits)}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-muted/30 px-3 py-2.5">
                         <p className="text-caption">Collection %</p>
                         <p className="mt-1 font-semibold tabular-nums">
-                          {account.collectionPercent.toFixed(0)}%
+                          {formatPercent(account.collectionPercent)}
                         </p>
                       </div>
                     </div>
-                    <Button asChild variant="outline" size="sm" className="w-full">
-                      <Link
-                        to={ROUTES.account}
-                        onClick={() => setPropertyId(item.id)}
-                      >
-                        Open Account
-                      </Link>
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button asChild variant="outline" size="sm" className="flex-1">
+                        <Link
+                          to={ROUTES.account}
+                          onClick={() => setPropertyId(item.id)}
+                        >
+                          Account
+                        </Link>
+                      </Button>
+                      <Button asChild variant="secondary" size="sm" className="flex-1">
+                        <Link
+                          to={ROUTES.bill}
+                          onClick={() => setPropertyId(item.id)}
+                        >
+                          View Bill
+                        </Link>
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}

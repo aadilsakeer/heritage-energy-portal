@@ -11,7 +11,7 @@ import {
 import { StatCard } from '@/components/cards/StatCard'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import type { PropertyAccountSummary } from '@/lib/account'
-import { formatCurrency, formatDate } from '@/utils/format'
+import { formatCurrency, formatDate, formatPercent } from '@/utils/format'
 
 interface AccountMetricsGridProps {
   account: PropertyAccountSummary
@@ -52,7 +52,7 @@ export function AccountMetricsGrid({
           />
           <StatCard
             label="Collection %"
-            value={`${account.collectionPercent.toFixed(0)}%`}
+            value={`${formatPercent(account.collectionPercent)}`}
             icon={BadgePercent}
             accent="primary"
             delay={0.06}

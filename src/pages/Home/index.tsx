@@ -4,7 +4,9 @@ import {
   Activity,
   ArrowDownToLine,
   Download,
+  FileText,
   Gauge,
+  History,
   Leaf,
   Receipt,
   Sparkles,
@@ -24,6 +26,7 @@ import { StatCard } from '@/components/cards/StatCard'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { SectionHeader } from '@/components/layout/SectionHeader'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { useProperty } from '@/context/PropertyContext'
 import { useRefresh } from '@/context/RefreshContext'
 import { useAsync } from '@/hooks/useAsync'
@@ -32,21 +35,22 @@ import {
   buildQuickStats,
   buildSavingsSummary,
 } from '@/services/analyticsService'
-import { fetchPropertyAccount } from '@/services/accountService'
+import {
+  fetchCustomerLedger,
+  fetchPropertyAccount,
+} from '@/services/accountService'
 import {
   fetchBillHistory,
   fetchLatestPublishedBill,
 } from '@/services/billService'
 import { fetchPayments } from '@/services/paymentService'
-import {
-  fetchCreditsForProperty,
-} from '@/services/creditService'
+import { fetchCreditsForProperty } from '@/services/creditService'
 import { fetchPendingPaymentRequest } from '@/services/paymentRequestService'
 import { generateStatementPdf } from '@/services/statementService'
 import { computePaymentSummary } from '@/lib/payments'
 import { notify } from '@/lib/toast'
 import { downloadInvoice } from '@/utils/downloadInvoice'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, formatDate, formatPercent } from '@/utils/format'
 import { toCurrentBill } from '@/utils/mappers'
 
 const quickStatIcons = {
@@ -70,10 +74,11 @@ export function HomePage() {
   const latestQuery = useAsync(
     async () => {
       if (!propertyId) return null
-      const [bill, credits, account] = await Promise.all([
+      const [bill, credits, account, ledger] = await Promise.all([
         fetchLatestPublishedBill(propertyId),
         fetchCreditsForProperty(propertyId),
         fetchPropertyAccount(propertyId),
+        fetchCustomerLedger(propertyId),
       ])
       const accountCredit = account.credits
       if (!bill) {
@@ -86,6 +91,7 @@ export function HomePage() {
           payments: [],
           account,
           outstanding: null,
+          recentActivity: ledger.entries.slice(-6).reverse(),
         }
       }
       const [payments, pendingRequest] = await Promise.all([
@@ -118,6 +124,7 @@ export function HomePage() {
           lastPaymentAmount: account.lastPayment?.amount ?? null,
           pendingBills: account.pendingBills,
         },
+        recentActivity: ledger.entries.slice(-6).reverse(),
       }
     },
     [propertyId, refreshSignal],
@@ -171,6 +178,7 @@ export function HomePage() {
   const pendingRequest = latestQuery.data?.pendingRequest
   const account = latestQuery.data?.account
   const outstanding = latestQuery.data?.outstanding
+  const recentActivity = latestQuery.data?.recentActivity ?? []
   const history = historyQuery.data ?? []
   const hasPublishedBill = Boolean(latestBill)
   const savings = hasPublishedBill
@@ -236,6 +244,41 @@ export function HomePage() {
           )}
 
           {account ? (
+            <section className="section-stack" aria-label="Collection snapshot">
+              <SectionHeader
+                title="Collection Snapshot"
+                description="Pending bills and collection health"
+              />
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <StatCard
+                  label="Pending Bills"
+                  value={String(account.pendingBills)}
+                  icon={Receipt}
+                  delay={0.02}
+                />
+                <StatCard
+                  label="Collection %"
+                  value={formatPercent(account.collectionPercent)}
+                  icon={Sparkles}
+                  accent="primary"
+                  delay={0.04}
+                />
+                <StatCard
+                  label="Collection Status"
+                  value={account.collectionStatus}
+                  delay={0.06}
+                />
+                <StatCard
+                  label="Credits"
+                  value={formatCurrency(account.credits)}
+                  icon={WalletCards}
+                  delay={0.08}
+                />
+              </div>
+            </section>
+          ) : null}
+
+          {account ? (
             <AccountMetricsGrid
               account={account}
               title="Account Overview"
@@ -248,33 +291,112 @@ export function HomePage() {
             <PreviousBillsList rows={account.unpaidBills} />
           ) : null}
 
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="default" size="sm">
-              <Link to={ROUTES.account}>
-                <WalletCards className="h-4 w-4" />
-                Open Account
-              </Link>
-            </Button>
-            {property ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  void generateStatementPdf(property)
-                    .then(() => notify.success('Statement downloaded'))
-                    .catch((err: unknown) =>
-                      notify.error(
-                        err instanceof Error ? err.message : 'Download failed',
-                      ),
-                    )
-                }}
-              >
-                <Download className="h-4 w-4" />
-                Statement of Account
+          <section className="section-stack" aria-label="Quick actions">
+            <SectionHeader title="Quick Actions" />
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="default">
+                <Link to={ROUTES.account}>
+                  <WalletCards className="h-4 w-4" />
+                  Account
+                </Link>
               </Button>
-            ) : null}
-          </div>
+              {latestBill ? (
+                <Button asChild variant="outline">
+                  <Link to={`${ROUTES.bill}/${latestBill.id}`}>
+                    <FileText className="h-4 w-4" />
+                    View Bill
+                  </Link>
+                </Button>
+              ) : null}
+              <Button asChild variant="outline">
+                <Link to={ROUTES.history}>
+                  <History className="h-4 w-4" />
+                  History
+                </Link>
+              </Button>
+              {property ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    void generateStatementPdf(property)
+                      .then(() => notify.success('Statement downloaded'))
+                      .catch((err: unknown) =>
+                        notify.error(
+                          err instanceof Error ? err.message : 'Download failed',
+                        ),
+                      )
+                  }}
+                >
+                  <Download className="h-4 w-4" />
+                  Statement
+                </Button>
+              ) : null}
+              {latestBill && property ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    void downloadInvoice(latestBill, property)
+                      .then(() => notify.success('Invoice downloaded'))
+                      .catch((err: unknown) =>
+                        notify.error(
+                          err instanceof Error ? err.message : 'Download failed',
+                        ),
+                      )
+                  }}
+                >
+                  <Download className="h-4 w-4" />
+                  Invoice
+                </Button>
+              ) : null}
+            </div>
+          </section>
+
+          {recentActivity.length > 0 ? (
+            <section className="section-stack" aria-label="Recent activity">
+              <SectionHeader
+                title="Recent Activity"
+                description="Latest ledger movements"
+                action={
+                  <Button asChild variant="ghost" size="sm">
+                    <Link to={ROUTES.account}>View timeline</Link>
+                  </Button>
+                }
+              />
+              <Card className="surface-card">
+                <CardContent className="divide-y divide-border/40 p-0">
+                  {recentActivity.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="flex items-start justify-between gap-3 px-4 py-3.5 sm:px-5"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold tracking-tight">
+                          {entry.description}
+                        </p>
+                        <p className="text-caption mt-1">
+                          {formatDate(entry.date)}
+                        </p>
+                      </div>
+                      <div className="text-right text-sm tabular-nums">
+                        {entry.debit > 0 ? (
+                          <p className="font-semibold">
+                            {formatCurrency(entry.debit)}
+                          </p>
+                        ) : null}
+                        {entry.credit > 0 ? (
+                          <p className="font-semibold text-emerald-700 dark:text-emerald-300">
+                            −{formatCurrency(entry.credit)}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </section>
+          ) : null}
 
           <AccountCreditCard balance={accountCredit} />
 
@@ -317,8 +439,8 @@ export function HomePage() {
 
           <section aria-label="Quick statistics">
             <SectionHeader
-              title="Quick Statistics"
-              description="Live snapshot of your energy profile"
+              title="Energy Snapshot"
+              description="Live profile for this property"
             />
             {quickStats.length === 0 ? (
               <EmptyState

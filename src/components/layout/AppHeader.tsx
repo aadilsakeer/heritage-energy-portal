@@ -7,6 +7,7 @@ import { BrandLogo } from '@/components/layout/BrandLogo'
 import { Button } from '@/components/ui/button'
 import { PropertySwitcher } from '@/components/layout/PropertySwitcher'
 import { InstallPrompt } from '@/components/layout/InstallPrompt'
+import { GlobalSearch } from '@/components/layout/GlobalSearch'
 import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 import { usePropertyLabel } from '@/context/PropertyContext'
 
@@ -26,6 +27,9 @@ export const AppHeader = memo(function AppHeader() {
           />
 
           <div className="flex shrink-0 items-center gap-1">
+            <div className="mr-1 hidden md:block">
+              <GlobalSearch />
+            </div>
             <InstallPrompt />
             <NotificationCenter />
             <Button
@@ -67,6 +71,10 @@ export const AppHeader = memo(function AppHeader() {
               />
             </Button>
           </div>
+        </div>
+
+        <div className="mt-4 md:hidden">
+          <GlobalSearch className="max-w-none" />
         </div>
 
         <div className="mt-5">

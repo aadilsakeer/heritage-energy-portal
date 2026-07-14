@@ -8,7 +8,8 @@ import type {
   MonthlyMetric,
   SavingsSummary,
 } from '@/types'
-import { formatMonthShort } from '@/utils/format'
+import type { LedgerEntry } from '@/lib/account'
+import { formatEnergy, formatMonthShort, formatPercent } from '@/utils/format'
 import { fetchPublishedBills } from '@/services/billService'
 
 function toMetric(bill: Bill, value: number): MonthlyMetric {
@@ -97,24 +98,24 @@ export function buildQuickStats(bill: Bill | null) {
   const exportKwh = bill.exportKwh ?? 0
   const efficiency =
     generation > 0
-      ? `${((consumption / generation) * 100).toFixed(1)}%`
+      ? formatPercent((consumption / generation) * 100)
       : '—'
 
   return [
     {
       id: 'generation',
       label: 'Solar Generated',
-      value: `${generation.toLocaleString('en-IN')} kWh`,
+      value: formatEnergy(generation),
     },
     {
       id: 'consumption',
       label: 'Consumed',
-      value: `${consumption.toLocaleString('en-IN')} kWh`,
+      value: formatEnergy(consumption),
     },
     {
       id: 'export',
       label: 'Exported',
-      value: `${exportKwh.toLocaleString('en-IN')} kWh`,
+      value: formatEnergy(exportKwh),
     },
     {
       id: 'efficiency',
@@ -122,4 +123,71 @@ export function buildQuickStats(bill: Bill | null) {
       value: efficiency,
     },
   ]
+}
+
+/** Display-only trend series for admin dashboard charts. */
+export function buildAdminTrendCharts(
+  bills: Bill[],
+  entries: LedgerEntry[],
+): {
+  collectionTrend: MonthlyMetric[]
+  outstandingTrend: MonthlyMetric[]
+  paymentTrend: MonthlyMetric[]
+  solarSavings: MonthlyMetric[]
+} {
+  const published = bills
+    .filter((bill) => bill.status !== 'draft')
+    .slice()
+    .sort((a, b) => a.billingMonth.localeCompare(b.billingMonth))
+
+  const paymentByMonth = new Map<string, number>()
+  for (const entry of entries) {
+    if (entry.type !== 'payment') continue
+    const key = entry.date.slice(0, 7)
+    paymentByMonth.set(key, (paymentByMonth.get(key) ?? 0) + entry.credit)
+  }
+
+  const monthKeys = [
+    ...new Set([
+      ...published.map((bill) => bill.billingMonth.slice(0, 7)),
+      ...paymentByMonth.keys(),
+    ]),
+  ].sort()
+
+  let cumBilled = 0
+  let cumPaid = 0
+  const collectionTrend: MonthlyMetric[] = []
+  const outstandingTrend: MonthlyMetric[] = []
+  const paymentTrend: MonthlyMetric[] = []
+  const solarSavings: MonthlyMetric[] = []
+
+  for (const ym of monthKeys) {
+    const bill = published.find((item) => item.billingMonth.startsWith(ym))
+    const billed = bill?.tenantTotal ?? 0
+    const paid = paymentByMonth.get(ym) ?? 0
+    cumBilled += billed
+    cumPaid += paid
+    const labelDate = `${ym}-01`
+    collectionTrend.push({
+      month: formatMonthShort(labelDate),
+      value:
+        cumBilled > 0
+          ? Math.round((cumPaid / cumBilled) * 1000) / 10
+          : 0,
+    })
+    outstandingTrend.push({
+      month: formatMonthShort(labelDate),
+      value: Math.max(0, Math.round((cumBilled - cumPaid) * 100) / 100),
+    })
+    paymentTrend.push({
+      month: formatMonthShort(labelDate),
+      value: Math.round(paid * 100) / 100,
+    })
+    solarSavings.push({
+      month: formatMonthShort(labelDate),
+      value: Math.round((bill?.discountAmount ?? 0) * 100) / 100,
+    })
+  }
+
+  return { collectionTrend, outstandingTrend, paymentTrend, solarSavings }
 }

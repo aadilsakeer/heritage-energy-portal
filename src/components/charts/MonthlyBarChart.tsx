@@ -8,11 +8,19 @@ import {
   YAxis,
 } from 'recharts'
 import type { MonthlyMetric } from '@/types'
+import { formatCurrency, formatEnergy, formatPercent } from '@/utils/format'
 
 interface MonthlyBarChartProps {
   data: MonthlyMetric[]
   color?: string
   unit?: string
+}
+
+function formatTooltipValue(value: number, unit: string): string {
+  if (unit === '₹') return formatCurrency(value)
+  if (unit === '%') return formatPercent(value)
+  if (unit === 'kWh') return formatEnergy(value)
+  return `${Number(value).toLocaleString('en-IN')}${unit ? ` ${unit}` : ''}`
 }
 
 export function MonthlyBarChart({
@@ -50,7 +58,7 @@ export function MonthlyBarChart({
               boxShadow: 'var(--shadow-soft)',
             }}
             formatter={(value) => [
-              `${Number(value).toLocaleString('en-IN')}${unit ? ` ${unit}` : ''}`,
+              formatTooltipValue(Number(value), unit),
               'Value',
             ]}
           />
@@ -62,7 +70,6 @@ export function MonthlyBarChart({
             animationDuration={700}
             animationEasing="ease-out"
           />
-
         </BarChart>
       </ResponsiveContainer>
     </div>
