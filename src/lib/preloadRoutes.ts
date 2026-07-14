@@ -21,12 +21,6 @@ export function preloadTabRoutes(): void {
   }
 }
 
-export function preloadAdminRoute(): void {
-  void import('@/pages/Admin')
-  void import('@/pages/Account')
-  void import('@/pages/Settings')
-}
-
 export function preloadAdjacentTab(currentPath: string): void {
   const tabs = [ROUTES.home, ROUTES.bill, ROUTES.analytics, ROUTES.history]
   const index = tabs.findIndex(

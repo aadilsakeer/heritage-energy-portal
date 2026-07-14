@@ -165,9 +165,13 @@ function RequestCard({
   const [billMonth, setBillMonth] = useState('…')
 
   useEffect(() => {
+    let cancelled = false
     void fetchBillById(request.billId).then((bill) => {
-      if (bill) setBillMonth(formatMonthLabel(bill.billingMonth))
+      if (!cancelled && bill) setBillMonth(formatMonthLabel(bill.billingMonth))
     })
+    return () => {
+      cancelled = true
+    }
   }, [request.billId])
 
   return (

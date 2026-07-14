@@ -20,6 +20,7 @@ import {
 } from '@/lib/account'
 import { roundMoney } from '@/lib/credits'
 import { PAYABLE_STATUSES } from '@/lib/payments'
+import { assertNonZeroAmount } from '@/lib/validation'
 import { getSupabaseErrorMessage, supabase } from '@/lib/supabase'
 import { fetchPropertyCreditBalance } from '@/services/creditService'
 import { fetchPortalSettings } from '@/services/settingsService'
@@ -362,7 +363,7 @@ export async function createAccountAdjustment(input: {
   reason: string
   notes?: string
 }): Promise<AccountAdjustment> {
-  if (input.amount === 0) throw new Error('Adjustment amount cannot be zero')
+  assertNonZeroAmount(input.amount, 'Adjustment amount')
   if (!input.reason.trim()) throw new Error('Adjustment reason is required')
 
   const { data, error } = await supabase

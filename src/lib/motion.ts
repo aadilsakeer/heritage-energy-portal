@@ -13,20 +13,10 @@ export const fadeUp = {
   transition: { duration: 0.18, ease: easeOut },
 }
 
-export const fadeIn = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  transition: { duration: 0.16, ease: easeOut },
-}
-
 export const cardEnter = {
   initial: { opacity: 0, y: 8 },
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.2, ease: easeOut },
-}
-
-export const scaleTap = {
-  whileTap: { scale: 0.98 },
 }
 
 export const pagePanel = {

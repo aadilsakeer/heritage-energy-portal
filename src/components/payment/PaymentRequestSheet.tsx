@@ -38,7 +38,7 @@ export function PaymentRequestSheet({
   const [submitted, setSubmitted] = useState(false)
 
   const handleSubmit = async () => {
-    if (amount <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       notify.error('Enter a payment amount greater than zero')
       return
     }
@@ -140,7 +140,7 @@ export function PaymentRequestSheet({
             <input
               id="request-proof"
               type="file"
-              accept="image/png,image/jpeg,image/webp"
+              accept="image/png,image/jpeg,application/pdf"
               className="sr-only"
               onChange={(event) =>
                 setProofFile(event.target.files?.[0] ?? null)

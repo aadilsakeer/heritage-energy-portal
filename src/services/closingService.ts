@@ -3,21 +3,6 @@ import { fetchBillById } from '@/services/billService'
 import { logAuditEvent } from '@/services/auditService'
 import type { Bill } from '@/types'
 
-async function assertUnlocked(billId: string): Promise<Bill> {
-  const bill = await fetchBillById(billId)
-  if (!bill) throw new Error('Bill not found')
-  if (bill.isLocked) {
-    throw new Error(
-      'This bill is locked for monthly closing. Reopen it in Admin before editing.',
-    )
-  }
-  return bill
-}
-
-export async function ensureBillEditable(billId: string): Promise<Bill> {
-  return assertUnlocked(billId)
-}
-
 export async function closeBillingMonth(
   propertyId: string,
   billingMonth: string,

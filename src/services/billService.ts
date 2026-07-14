@@ -1,5 +1,6 @@
 import { calculateBill } from '@/lib/calculations'
 import type { ExtractionResult, ReviewFormValues } from '@/lib/extractionSchema'
+import { assertAllowedUpload } from '@/lib/validation'
 import {
   getSupabaseErrorMessage,
   KSEB_BILLS_BUCKET,
@@ -93,6 +94,7 @@ export async function uploadMeterReading(input: {
   file: File
   billingMonth?: string
 }): Promise<Bill> {
+  assertAllowedUpload(input.file)
   const billingMonth = input.billingMonth ?? billingMonthFromDate(null)
   const objectPath = storagePath(
     input.propertyId,
@@ -394,16 +396,4 @@ export async function deleteDraftBill(billId: string): Promise<void> {
 
   const { error } = await supabase.from('bills').delete().eq('id', billId)
   if (error) throw new Error(getSupabaseErrorMessage(error))
-}
-
-
-export async function getPdfDownloadUrl(
-  pdfPath: string,
-): Promise<string | null> {
-  const { data, error } = await supabase.storage
-    .from(KSEB_BILLS_BUCKET)
-    .createSignedUrl(pdfPath, 60 * 10)
-
-  if (error) throw new Error(getSupabaseErrorMessage(error))
-  return data.signedUrl
 }

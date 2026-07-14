@@ -35,7 +35,9 @@ export function formatDate(dateString: string): string {
 
 export function formatDateTime(dateString: string): string {
   const date = new Date(dateString)
-  const day = formatDate(date.toISOString())
+  const dd = String(date.getDate()).padStart(2, '0')
+  const mon = date.toLocaleDateString('en-GB', { month: 'short' })
+  const day = `${dd} ${mon} ${date.getFullYear()}`
   const time = date.toLocaleTimeString('en-IN', {
     hour: '2-digit',
     minute: '2-digit',

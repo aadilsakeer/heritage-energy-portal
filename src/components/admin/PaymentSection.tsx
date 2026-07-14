@@ -67,7 +67,7 @@ export function PaymentSection({
   }
 
   const handleSubmit = async () => {
-    if (form.amount <= 0) {
+    if (!Number.isFinite(form.amount) || form.amount <= 0) {
       notify.error('Enter a payment amount greater than zero')
       return
     }

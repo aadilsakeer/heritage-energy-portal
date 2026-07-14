@@ -6,7 +6,7 @@ import {
 import { fetchCreditsForProperty } from '@/services/creditService'
 import { generateStatementPdf } from '@/services/statementService'
 import type { Property } from '@/types'
-import { formatCurrency, formatMonthLabel } from '@/utils/format'
+import { formatMonthLabel } from '@/utils/format'
 import { downloadCsv, downloadExcel, downloadJson } from '@/utils/exportDownload'
 
 export type ReportFormat = 'csv' | 'excel' | 'pdf' | 'json'
@@ -191,8 +191,4 @@ export async function exportYearlyReport(
     fromDate: `${year}-01-01`,
     toDate: `${year}-12-31`,
   })
-}
-
-export function summarizeCurrencyRows(label: string, value: number): string {
-  return `${label}: ${formatCurrency(value)}`
 }

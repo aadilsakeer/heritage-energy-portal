@@ -4,6 +4,7 @@ import {
   roundMoney,
   type CreditStatus,
 } from '@/lib/credits'
+import { assertPositiveAmount } from '@/lib/validation'
 import { getSupabaseErrorMessage, supabase } from '@/lib/supabase'
 import { fetchBillById } from '@/services/billService'
 import { logBillEvent } from '@/services/eventService'
@@ -222,7 +223,7 @@ export async function createManualCredit(input: {
   auditBillId: string
 }): Promise<CustomerCredit> {
   const amount = roundMoney(input.amount)
-  if (amount <= 0) throw new Error('Credit amount must be greater than zero')
+  assertPositiveAmount(amount, 'Credit amount')
 
   return insertCredit(
     {

@@ -54,19 +54,6 @@ export async function fetchAllNotifications(limit = 100): Promise<Notification[]
   return (data ?? []).map(mapNotification)
 }
 
-export async function fetchUnreadCount(propertyId?: string | null): Promise<number> {
-  let query = supabase
-    .from('notifications')
-    .select('id', { count: 'exact', head: true })
-    .eq('is_read', false)
-
-  if (propertyId) query = query.eq('property_id', propertyId)
-
-  const { count, error } = await query
-  if (error) throw new Error(getSupabaseErrorMessage(error))
-  return count ?? 0
-}
-
 export async function markNotificationRead(notificationId: string): Promise<void> {
   const { error } = await supabase
     .from('notifications')

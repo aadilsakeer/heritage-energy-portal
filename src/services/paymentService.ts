@@ -3,11 +3,12 @@ import {
   derivePaymentStatus,
   type PaymentMethod,
 } from '@/lib/payments'
+import { assertPositiveAmount } from '@/lib/validation'
 import { getSupabaseErrorMessage, supabase } from '@/lib/supabase'
 import { logBillEvent } from '@/services/eventService'
 import { fetchBillById } from '@/services/billService'
 import type { Bill, Payment } from '@/types'
-import type { PaymentInsert, PaymentRow, PaymentUpdate } from '@/types/database'
+import type { PaymentInsert, PaymentUpdate } from '@/types/database'
 import { mapPayment } from '@/utils/mappers'
 
 export interface PaymentInput {
@@ -81,9 +82,7 @@ export async function createPayment(
   if (bill.tenantTotal === null) {
     throw new Error('Bill must have a calculated total before recording payments')
   }
-  if (input.amount <= 0) {
-    throw new Error('Payment amount must be greater than zero')
-  }
+  assertPositiveAmount(input.amount, 'Payment amount')
 
   // Soft duplicate check (also enforced by DB unique index when migrated)
   const existing = await fetchPayments(billId)
@@ -162,9 +161,7 @@ export async function createFifoPayment(
   propertyId: string,
   input: PaymentInput,
 ): Promise<{ payments: Payment[]; bills: Bill[]; allocations: number }> {
-  if (input.amount <= 0) {
-    throw new Error('Enter a payment amount greater than zero')
-  }
+  assertPositiveAmount(input.amount, 'Payment amount')
 
   const { planPropertyFifoAllocation } = await import(
     '@/services/accountService'
@@ -209,6 +206,7 @@ export async function updatePayment(
 ): Promise<{ payment: Payment; bill: Bill }> {
   const existing = await fetchPaymentById(paymentId)
   if (!existing) throw new Error('Payment not found')
+  assertPositiveAmount(input.amount, 'Payment amount')
 
   const payload: PaymentUpdate = {
     amount: input.amount,
@@ -284,16 +282,5 @@ async function fetchPaymentById(paymentId: string): Promise<Payment | null> {
     .maybeSingle()
 
   if (error) throw new Error(getSupabaseErrorMessage(error))
-  return data ? mapPayment(data as PaymentRow) : null
-}
-
-export async function fetchPaymentSummaryForBill(billId: string) {
-  const bill = await fetchBillById(billId)
-  if (!bill) throw new Error('Bill not found')
-  const payments = await fetchPayments(billId)
-  return {
-    bill,
-    payments,
-    summary: computePaymentSummary(bill, payments),
-  }
+  return data ? mapPayment(data) : null
 }

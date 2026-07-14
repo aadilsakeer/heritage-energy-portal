@@ -130,7 +130,7 @@ create table if not exists public.customer_credits (
   bill_id uuid references public.bills (id) on delete set null,
   amount numeric(12, 2) not null check (amount > 0),
   reason text not null,
-  remaining_amount numeric(12, 2) not null check (remaining_amount >= 0),
+  remaining_amount numeric(12, 2) not null check (remaining_amount >= 0 and remaining_amount <= amount),
   created_at timestamptz not null default now(),
   applied_at timestamptz,
   status text not null default 'active' check (status in ('active', 'used', 'cancelled'))
@@ -227,6 +227,7 @@ create index if not exists notifications_property_read_idx
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at = now();
@@ -255,7 +256,10 @@ alter table public.payment_requests enable row level security;
 alter table public.notifications enable row level security;
 
 drop policy if exists "Public read properties" on public.properties;
+drop policy if exists "Public update properties" on public.properties;
 drop policy if exists "Public read billing configuration" on public.billing_configuration;
+drop policy if exists "Public insert billing configuration" on public.billing_configuration;
+drop policy if exists "Public update billing configuration" on public.billing_configuration;
 drop policy if exists "Public read bills" on public.bills;
 drop policy if exists "Public insert bills" on public.bills;
 drop policy if exists "Public update bills" on public.bills;
@@ -283,9 +287,23 @@ create policy "Public read properties"
   on public.properties for select
   using (true);
 
+create policy "Public update properties"
+  on public.properties for update
+  using (true)
+  with check (true);
+
 create policy "Public read billing configuration"
   on public.billing_configuration for select
   using (true);
+
+create policy "Public insert billing configuration"
+  on public.billing_configuration for insert
+  with check (true);
+
+create policy "Public update billing configuration"
+  on public.billing_configuration for update
+  using (true)
+  with check (true);
 
 create policy "Public read bills"
   on public.bills for select

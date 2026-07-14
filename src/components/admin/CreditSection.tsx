@@ -47,7 +47,7 @@ export function CreditSection({
       return
     }
     const value = Number(amount)
-    if (value <= 0) {
+    if (!Number.isFinite(value) || value <= 0) {
       notify.error('Enter a credit amount greater than zero')
       return
     }

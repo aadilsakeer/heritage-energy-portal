@@ -1,34 +1,9 @@
-import { APP_NAME, BRAND } from '@/constants'
+import { APP_NAME } from '@/constants'
 import { fetchCustomerLedger, fetchPropertyAccount } from '@/services/accountService'
 import { fetchPortalSettings } from '@/services/settingsService'
 import type { Property } from '@/types'
+import { loadBrandLogo } from '@/utils/brandLogo'
 import { formatCurrency, formatDate, formatDateTime } from '@/utils/format'
-
-async function loadBrandLogo(logoPath: string): Promise<{
-  dataUrl: string
-  width: number
-  height: number
-}> {
-  const response = await fetch(logoPath || BRAND.logo)
-  if (!response.ok) throw new Error('Failed to load brand logo')
-
-  const blob = await response.blob()
-  const dataUrl = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result))
-    reader.onerror = () => reject(new Error('Failed to read brand logo'))
-    reader.readAsDataURL(blob)
-  })
-
-  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const element = new Image()
-    element.onload = () => resolve(element)
-    element.onerror = () => reject(new Error('Failed to decode brand logo'))
-    element.src = dataUrl
-  })
-
-  return { dataUrl, width: image.width, height: image.height }
-}
 
 export interface StatementOptions {
   fromDate?: string | null
@@ -59,7 +34,7 @@ export async function generateStatementPdf(
 
   const logoWidth = 48
   const logoHeight = (logo.height / logo.width) * logoWidth
-  doc.addImage(logo.dataUrl, 'PNG', margin, y - 6, logoWidth, logoHeight)
+  doc.addImage(logo.dataUrl, logo.format, margin, y - 6, logoWidth, logoHeight)
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(11)

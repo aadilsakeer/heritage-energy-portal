@@ -1,4 +1,5 @@
 import { formatPaymentMethod, type PaymentMethod } from '@/lib/payments'
+import { assertAllowedUpload, assertPositiveAmount } from '@/lib/validation'
 import {
   getSupabaseErrorMessage,
   KSEB_BILLS_BUCKET,
@@ -30,6 +31,7 @@ async function uploadProof(
   billId: string,
   file: File,
 ): Promise<string> {
+  assertAllowedUpload(file)
   const objectPath = `payment-proofs/${propertyId}/${billId}/${Date.now()}-${file.name.replace(/[^\w.-]+/g, '_')}`
 
   const { error } = await supabase.storage
@@ -75,20 +77,7 @@ export async function fetchPendingPaymentRequest(
     .maybeSingle()
 
   if (error) throw new Error(getSupabaseErrorMessage(error))
-  return data ? mapPaymentRequest(data as PaymentRequestRow) : null
-}
-
-export async function fetchPaymentRequestsForBill(
-  billId: string,
-): Promise<PaymentRequest[]> {
-  const { data, error } = await supabase
-    .from('payment_requests')
-    .select('*')
-    .eq('bill_id', billId)
-    .order('requested_at', { ascending: false })
-
-  if (error) throw new Error(getSupabaseErrorMessage(error))
-  return (data ?? []).map((row) => mapPaymentRequest(row as PaymentRequestRow))
+  return data ? mapPaymentRequest(data) : null
 }
 
 export async function fetchPendingPaymentRequests(): Promise<PaymentRequest[]> {
@@ -120,9 +109,7 @@ export async function createPaymentRequest(
     throw new Error('A payment verification request is already pending for this bill')
   }
 
-  if (input.amount <= 0) {
-    throw new Error('Payment amount must be greater than zero')
-  }
+  assertPositiveAmount(input.amount, 'Payment amount')
 
   let proofUrl: string | null = null
   if (input.proofFile) {

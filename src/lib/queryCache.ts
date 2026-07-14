@@ -17,13 +17,3 @@ export function setCached<T>(key: string, data: T): void {
 export function hasCached(key: string): boolean {
   return store.has(key)
 }
-
-export function clearQueryCache(prefix?: string): void {
-  if (!prefix) {
-    store.clear()
-    return
-  }
-  for (const key of store.keys()) {
-    if (key.startsWith(prefix)) store.delete(key)
-  }
-}

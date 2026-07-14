@@ -47,6 +47,18 @@ export async function updateBillingConfiguration(
   propertyId: string,
   input: { rate: number; discountPercent: number; fixedCharge: number },
 ): Promise<BillingConfiguration> {
+  if (
+    !Number.isFinite(input.rate) ||
+    input.rate < 0 ||
+    !Number.isFinite(input.discountPercent) ||
+    input.discountPercent < 0 ||
+    input.discountPercent > 100 ||
+    !Number.isFinite(input.fixedCharge) ||
+    input.fixedCharge < 0
+  ) {
+    throw new Error('Billing rate, discount, and fixed charge must be valid numbers')
+  }
+
   const existing = await fetchBillingConfiguration(propertyId)
   if (!existing) {
     const { data, error } = await supabase
@@ -83,10 +95,15 @@ export async function updatePropertyConsumerNumber(
   propertyId: string,
   consumerNumber: string | null,
 ): Promise<Property> {
+  const normalized = consumerNumber?.replace(/\D/g, '') || null
+  if (normalized && normalized.length > 32) {
+    throw new Error('Consumer number is too long')
+  }
+
   const { data, error } = await supabase
     .from('properties')
     .update({
-      consumer_number: consumerNumber?.replace(/\D/g, '') || null,
+      consumer_number: normalized,
     })
     .eq('id', propertyId)
     .select('*')
