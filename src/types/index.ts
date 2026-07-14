@@ -207,7 +207,22 @@ export interface AnalyticsSummary {
   outstandingCredits: number
   creditsUsed: number
   totalCreditsGiven: number
+  /** Property AR outstanding (unpaid bill balances). */
+  accountOutstanding?: number
+  pendingBills?: number
+  lastPaymentAmount?: number | null
+  nextDue?: string | null
 }
+
+export type {
+  AccountDisplayStatus,
+  BillAccountSummary,
+  BillBalanceRow,
+  LedgerEntry,
+  LedgerTransactionType,
+  OutstandingBreakdown,
+  PropertyAccountSummary,
+} from '@/lib/account'
 
 export interface AnalyticsData {
   monthlyBills: MonthlyMetric[]

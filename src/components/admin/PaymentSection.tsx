@@ -19,7 +19,7 @@ import {
 } from '@/lib/payments'
 import type { Bill, Payment } from '@/types'
 import {
-  createPayment,
+  createFifoPayment,
   deletePayment,
   updatePayment,
   type PaymentInput,
@@ -78,8 +78,12 @@ export function PaymentSection({
         await updatePayment(editingId, form)
         notify.success('Payment updated')
       } else {
-        await createPayment(bill.id, form)
-        notify.success('Payment recorded')
+        const result = await createFifoPayment(bill.propertyId, form)
+        notify.success(
+          result.allocations > 1
+            ? `Payment allocated across ${result.allocations} bills (oldest first)`
+            : 'Payment recorded',
+        )
       }
       resetForm()
       await onChange()
@@ -120,7 +124,7 @@ export function PaymentSection({
     <section className="space-y-4">
       <SectionHeader
         title="Payments"
-        description="Record partial or full payments against this bill"
+        description="Payments clear the oldest unpaid bill first (FIFO)"
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">

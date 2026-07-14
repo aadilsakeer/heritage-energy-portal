@@ -490,6 +490,19 @@ where id in (
 );
 
 -- =============================================================================
+-- v3.0 Account Ledger indexes (non-destructive)
+-- =============================================================================
+
+create index if not exists bills_property_billing_month_idx
+  on public.bills (property_id, billing_month);
+
+create index if not exists bills_property_status_idx
+  on public.bills (property_id, status);
+
+create index if not exists payments_bill_payment_date_idx
+  on public.payments (bill_id, payment_date);
+
+-- =============================================================================
 -- Verification
 -- =============================================================================
 

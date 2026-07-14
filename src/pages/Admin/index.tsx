@@ -10,6 +10,7 @@ import { AuditTimeline } from '@/components/admin/AuditTimeline'
 import { BillReviewForm } from '@/components/admin/BillReviewForm'
 import { CreditSection } from '@/components/admin/CreditSection'
 import { BrandLogo } from '@/components/layout/BrandLogo'
+import { AccountMetricsGrid } from '@/components/cards/AccountMetricsGrid'
 import { RecentUploadCard } from '@/components/admin/RecentUploadCard'
 import { UploadSuccessCard } from '@/components/admin/UploadSuccessCard'
 import { PaymentRequestsSection } from '@/components/admin/PaymentRequestsSection'
@@ -48,6 +49,7 @@ import { fetchBillEvents } from '@/services/eventService'
 import { fetchBillingConfiguration } from '@/services/propertyService'
 import { fetchPayments } from '@/services/paymentService'
 import { fetchCreditsForProperty } from '@/services/creditService'
+import { fetchPropertyAccount } from '@/services/accountService'
 import { fetchPendingPaymentRequests } from '@/services/paymentRequestService'
 import { toUploadItem } from '@/utils/mappers'
 
@@ -128,6 +130,15 @@ export function AdminPage() {
   )
 
   const {
+    data: propertyAccount,
+    reload: reloadPropertyAccount,
+  } = useAsync(
+    async () => (propertyId ? fetchPropertyAccount(propertyId) : null),
+    [propertyId],
+    Boolean(propertyId),
+  )
+
+  const {
     data: paymentRequests,
     reload: reloadPaymentRequests,
   } = useAsync(async () => fetchPendingPaymentRequests(), [])
@@ -140,6 +151,7 @@ export function AdminPage() {
       reloadEvents(),
       reloadPayments(),
       reloadCredits(),
+      reloadPropertyAccount(),
       reloadPaymentRequests(),
       refreshNotifications(),
     ])
@@ -151,6 +163,7 @@ export function AdminPage() {
     reloadEvents,
     reloadPayments,
     reloadCredits,
+    reloadPropertyAccount,
     reloadPaymentRequests,
     refreshNotifications,
     triggerRefresh,
@@ -343,6 +356,15 @@ export function AdminPage() {
             {property?.label ?? 'a property'}.
           </p>
         </div>
+
+        {propertyAccount ? (
+          <AccountMetricsGrid
+            account={propertyAccount}
+            title="Collection Dashboard"
+            description={`Outstanding and collections for ${property?.label ?? 'property'}`}
+            variant="admin"
+          />
+        ) : null}
 
         <PaymentRequestsSection
           requests={paymentRequests ?? []}

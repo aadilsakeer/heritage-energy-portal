@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { matchPath, useLocation, useParams } from 'react-router-dom'
+import { BillSummaryCard } from '@/components/cards/BillSummaryCard'
 import { EmptyState } from '@/components/cards/EmptyState'
 import { ErrorState } from '@/components/cards/ErrorState'
 import { LoadingSkeleton } from '@/components/cards/LoadingSkeleton'
@@ -24,10 +25,8 @@ import { useRefresh } from '@/context/RefreshContext'
 import { useAsync } from '@/hooks/useAsync'
 import { notify } from '@/lib/toast'
 import { pagePanel } from '@/lib/motion'
-import {
-  fetchBillById,
-  fetchLatestPublishedBill,
-} from '@/services/billService'
+import { fetchBillById, fetchLatestPublishedBill } from '@/services/billService'
+import { fetchBillAccountSummary } from '@/services/accountService'
 import { fetchPayments } from '@/services/paymentService'
 import { fetchCreditsForBill } from '@/services/creditService'
 import { computePaymentSummary, formatBillStatus, canRequestPaymentVerification } from '@/lib/payments'
@@ -68,32 +67,39 @@ export function BillPage() {
       if (billId) {
         const bill = await fetchBillById(billId)
         if (!bill) return null
-        const [payments, credits, pendingRequest] = await Promise.all([
-          fetchPayments(bill.id),
-          fetchCreditsForBill(bill.id),
-          fetchPendingPaymentRequest(bill.id),
-        ])
+        const [payments, credits, pendingRequest, billSummary] =
+          await Promise.all([
+            fetchPayments(bill.id),
+            fetchCreditsForBill(bill.id),
+            fetchPendingPaymentRequest(bill.id),
+            fetchBillAccountSummary(bill.id, bill.propertyId),
+          ])
         return {
           bill,
           payments,
           credits,
           pendingRequest,
+          billSummary,
           summary: computePaymentSummary(bill, payments),
         }
       }
       if (!propertyId) return null
       const bill = await fetchLatestPublishedBill(propertyId)
       if (!bill) return null
-      const [payments, credits, pendingRequest] = await Promise.all([
-        fetchPayments(bill.id),
-        fetchCreditsForBill(bill.id),
-        fetchPendingPaymentRequest(bill.id),
-      ])
+      const [payments, credits, pendingRequest, billSummary] = await Promise.all(
+        [
+          fetchPayments(bill.id),
+          fetchCreditsForBill(bill.id),
+          fetchPendingPaymentRequest(bill.id),
+          fetchBillAccountSummary(bill.id, bill.propertyId),
+        ],
+      )
       return {
         bill,
         payments,
         credits,
         pendingRequest,
+        billSummary,
         summary: computePaymentSummary(bill, payments),
       }
     },
@@ -137,6 +143,7 @@ export function BillPage() {
   const billCredits = billQuery.data?.credits ?? []
   const pendingRequest = billQuery.data?.pendingRequest ?? null
   const paymentSummary = billQuery.data?.summary
+  const billSummary = billQuery.data?.billSummary
   const billProperty =
     properties.find((item) => item.id === bill?.propertyId) ?? property
 
@@ -291,6 +298,8 @@ export function BillPage() {
               ))}
             </div>
           </section>
+
+          {billSummary ? <BillSummaryCard summary={billSummary} /> : null}
 
           <section aria-label="Owner paid amounts">
             <SectionHeader

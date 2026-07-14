@@ -113,6 +113,56 @@ export async function createPayment(
   return { payment, bill: updatedBill }
 }
 
+/**
+ * Record a payment against a property using FIFO allocation.
+ * Clears the oldest unpaid bill first; never applies to newer bills before older ones.
+ * Existing bill-scoped createPayment remains for payment-request approval.
+ */
+export async function createFifoPayment(
+  propertyId: string,
+  input: PaymentInput,
+): Promise<{ payments: Payment[]; bills: Bill[]; allocations: number }> {
+  if (input.amount <= 0) {
+    throw new Error('Enter a payment amount greater than zero')
+  }
+
+  const { planPropertyFifoAllocation } = await import(
+    '@/services/accountService'
+  )
+  const plans = await planPropertyFifoAllocation(propertyId, input.amount)
+  if (plans.length === 0) {
+    throw new Error('No payable bill found for this property')
+  }
+
+  const payments: Payment[] = []
+  const affectedBillIds = new Set<string>()
+
+  for (const plan of plans) {
+    const noteParts = [
+      input.notes?.trim() || null,
+      plans.length > 1
+        ? `FIFO allocation ${plan.amount.toFixed(2)} of ${input.amount.toFixed(2)}`
+        : null,
+    ].filter(Boolean)
+
+    const { payment } = await createPayment(plan.billId, {
+      ...input,
+      amount: plan.amount,
+      notes: noteParts.length > 0 ? noteParts.join(' · ') : undefined,
+    })
+    payments.push(payment)
+    affectedBillIds.add(plan.billId)
+  }
+
+  const bills: Bill[] = []
+  for (const billId of affectedBillIds) {
+    const bill = await fetchBillById(billId)
+    if (bill) bills.push(bill)
+  }
+
+  return { payments, bills, allocations: plans.length }
+}
+
 export async function updatePayment(
   paymentId: string,
   input: PaymentInput,

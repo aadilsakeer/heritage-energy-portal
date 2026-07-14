@@ -1,8 +1,10 @@
 import { memo } from 'react'
-import { CalendarDays, Download, FileText } from 'lucide-react'
+import { AlertTriangle, CalendarDays, Download, FileText } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import type { CurrentBill } from '@/types'
+import type { AccountDisplayStatus, OutstandingBreakdown } from '@/lib/account'
+import { formatAccountDisplayStatus } from '@/lib/account'
 import { ROUTES } from '@/constants'
 import { cardEnter } from '@/lib/motion'
 import { formatBillStatus } from '@/lib/payments'
@@ -15,15 +17,22 @@ import { CountUp } from '@/components/ui/CountUp'
 
 interface HeroCardProps {
   bill: CurrentBill
+  outstanding?: OutstandingBreakdown | null
   onDownloadInvoice?: () => void
   isDownloading?: boolean
 }
 
 export const HeroCard = memo(function HeroCard({
   bill,
+  outstanding,
   onDownloadInvoice,
   isDownloading = false,
 }: HeroCardProps) {
+  const displayStatus: AccountDisplayStatus | CurrentBill['status'] =
+    outstanding?.status ?? bill.status
+  const isOverdue = outstanding?.isOverdue ?? false
+  const heroAmount = outstanding?.totalOutstanding ?? bill.balance
+
   return (
     <motion.div {...cardEnter}>
       <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary via-brand-secondary to-primary text-primary-foreground shadow-soft">
@@ -41,7 +50,7 @@ export const HeroCard = memo(function HeroCard({
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 space-y-1.5">
                 <p className="text-caption text-primary-foreground/80">
-                  Current Bill · {bill.month}
+                  Property Account · {bill.month}
                 </p>
                 {bill.propertyLabel ? (
                   <p className="text-sm font-medium text-primary-foreground/95">
@@ -49,47 +58,89 @@ export const HeroCard = memo(function HeroCard({
                   </p>
                 ) : null}
               </div>
-              <Badge
-                variant="secondary"
-                className="shrink-0 border-0 bg-white/15 capitalize text-primary-foreground backdrop-blur-md"
-              >
-                {formatBillStatus(bill.status)}
-              </Badge>
+              <div className="flex shrink-0 flex-col items-end gap-2">
+                <Badge
+                  variant="secondary"
+                  className="border-0 bg-white/15 capitalize text-primary-foreground backdrop-blur-md"
+                >
+                  {typeof displayStatus === 'string' &&
+                  [
+                    'Paid',
+                    'Unpaid',
+                    'Partially Paid',
+                    'Overdue',
+                    'Pending Verification',
+                    'Draft',
+                    'Archived',
+                  ].includes(displayStatus)
+                    ? formatAccountDisplayStatus(
+                        displayStatus as AccountDisplayStatus,
+                      )
+                    : formatBillStatus(bill.status)}
+                </Badge>
+                {isOverdue && outstanding ? (
+                  <Badge className="border-0 bg-red-500/25 text-primary-foreground">
+                    <AlertTriangle className="mr-1 h-3 w-3" aria-hidden />
+                    {outstanding.overdueDays}d overdue
+                  </Badge>
+                ) : null}
+              </div>
             </div>
 
             <div className="space-y-8">
               <div className="space-y-2">
                 <p className="text-caption text-primary-foreground/80">
-                  Remaining Amount
+                  Total Outstanding
                 </p>
                 <p className="text-money text-primary-foreground">
-                  <CountUp value={bill.balance} currency={bill.currency} />
+                  <CountUp value={heroAmount} currency={bill.currency} />
                 </p>
               </div>
 
               <div className="space-y-4 border-t border-white/15 pt-8">
                 <AmountRow
-                  label="Bill Amount"
-                  value={formatCurrency(bill.billAmount, bill.currency)}
+                  label="Current Bill"
+                  value={formatCurrency(
+                    outstanding?.currentBillAmount ?? bill.finalAmount,
+                    bill.currency,
+                  )}
+                />
+                <AmountRow
+                  label="Previous Outstanding"
+                  value={formatCurrency(
+                    outstanding?.previousOutstanding ?? 0,
+                    bill.currency,
+                  )}
+                />
+                <AmountRow
+                  label="Credit Applied"
+                  value={formatCurrency(
+                    outstanding?.creditApplied ?? bill.creditApplied,
+                    bill.currency,
+                  )}
                 />
                 <AmountRow
                   label="Paid"
                   value={formatCurrency(bill.totalPaid, bill.currency)}
                 />
                 <AmountRow
-                  label="Credit Applied"
-                  value={formatCurrency(bill.creditApplied, bill.currency)}
-                />
-                <AmountRow
-                  label="Final Amount"
-                  value={formatCurrency(bill.finalAmount, bill.currency)}
+                  label="Total Due"
+                  value={formatCurrency(
+                    outstanding?.totalDue ?? bill.balance,
+                    bill.currency,
+                  )}
                   emphasized
                 />
               </div>
 
               <div className="inline-flex min-h-12 items-center gap-2.5 rounded-full bg-white/10 px-5 py-2.5 text-sm font-medium text-primary-foreground/95 backdrop-blur-md">
                 <CalendarDays className="h-4 w-4 shrink-0" aria-hidden="true" />
-                <span>Due {formatDate(bill.dueDate)}</span>
+                <span>
+                  Due{' '}
+                  {formatDate(
+                    outstanding?.dueDate ?? bill.dueDate,
+                  )}
+                </span>
               </div>
             </div>
 

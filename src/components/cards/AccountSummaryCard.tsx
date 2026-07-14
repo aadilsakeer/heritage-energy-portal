@@ -4,6 +4,10 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { billStatusColorClass } from '@/lib/billStatus'
+import {
+  formatAccountDisplayStatus,
+  type OutstandingBreakdown,
+} from '@/lib/account'
 import { formatBillStatus } from '@/lib/payments'
 import type { CurrentBill, CustomerCredit, Payment } from '@/types'
 import type { PaymentSummary } from '@/lib/payments'
@@ -16,6 +20,7 @@ interface AccountSummaryCardProps {
   payments: Payment[]
   credits: CustomerCredit[]
   hasPendingVerification?: boolean
+  outstanding?: OutstandingBreakdown | null
 }
 
 export function AccountSummaryCard({
@@ -24,11 +29,15 @@ export function AccountSummaryCard({
   payments,
   credits,
   hasPendingVerification,
+  outstanding,
 }: AccountSummaryCardProps) {
   const activeCredits = credits.filter((credit) => credit.status === 'active')
   const appliedCredits = credits.filter(
     (credit) => credit.billId === bill.id && credit.status === 'used',
   )
+  const statusLabel = outstanding
+    ? formatAccountDisplayStatus(outstanding.status)
+    : formatBillStatus(bill.status)
 
   return (
     <motion.div
@@ -43,9 +52,16 @@ export function AccountSummaryCard({
               <p className="text-sm font-medium text-primary">Account Summary</p>
               <h2 className="mt-1 text-xl font-semibold">{bill.month}</h2>
             </div>
-            <Badge className={billStatusColorClass[bill.status]}>
-              {formatBillStatus(bill.status)}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className={billStatusColorClass[bill.status]}>
+                {statusLabel}
+              </Badge>
+              {outstanding?.isOverdue ? (
+                <Badge className="border-0 bg-red-500/15 text-red-700 dark:text-red-300">
+                  {outstanding.overdueDays}d overdue
+                </Badge>
+              ) : null}
+            </div>
           </div>
 
           {hasPendingVerification ? (
@@ -63,26 +79,55 @@ export function AccountSummaryCard({
           ) : null}
 
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-            <SummaryTile label="Bill Amount" value={formatCurrency(summary.billAmount)} />
+            <SummaryTile
+              label="Total Outstanding"
+              value={formatCurrency(
+                outstanding?.totalOutstanding ?? summary.balance,
+              )}
+            />
+            <SummaryTile
+              label="Current Bill"
+              value={formatCurrency(
+                outstanding?.currentBillAmount ?? summary.finalAmount,
+              )}
+            />
+            <SummaryTile
+              label="Previous Outstanding"
+              value={formatCurrency(outstanding?.previousOutstanding ?? 0)}
+            />
             <SummaryTile
               label="Credit Applied"
-              value={formatCurrency(summary.creditApplied)}
+              value={formatCurrency(
+                outstanding?.creditApplied ?? summary.creditApplied,
+              )}
               accent="text-blue-600 dark:text-blue-400"
             />
-            <SummaryTile label="Amount Paid" value={formatCurrency(summary.totalPaid)} accent="text-emerald-600 dark:text-emerald-400" />
-            <SummaryTile label="Remaining" value={formatCurrency(summary.balance)} />
+            <SummaryTile
+              label="Amount Paid"
+              value={formatCurrency(summary.totalPaid)}
+              accent="text-emerald-600 dark:text-emerald-400"
+            />
+            <SummaryTile
+              label="Total Due"
+              value={formatCurrency(outstanding?.totalDue ?? summary.balance)}
+            />
             <SummaryTile
               label="Current Credit"
               value={formatCurrency(bill.accountCredit)}
               accent="text-emerald-600 dark:text-emerald-400"
             />
-            <SummaryTile label="Final Amount" value={formatCurrency(summary.finalAmount)} />
+            <SummaryTile
+              label="Final Amount"
+              value={formatCurrency(summary.finalAmount)}
+            />
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Payment progress</span>
-              <span className="font-medium">{summary.paymentPercentage.toFixed(0)}%</span>
+              <span className="font-medium">
+                {summary.paymentPercentage.toFixed(0)}%
+              </span>
             </div>
             <Progress value={summary.paymentPercentage} className="h-2.5" />
           </div>

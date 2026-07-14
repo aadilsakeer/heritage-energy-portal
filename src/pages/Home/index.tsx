@@ -1,6 +1,7 @@
 import {
   Activity,
   ArrowDownToLine,
+  Download,
   Gauge,
   Leaf,
   Receipt,
@@ -9,14 +10,17 @@ import {
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AccountCreditCard } from '@/components/cards/AccountCreditCard'
+import { AccountMetricsGrid } from '@/components/cards/AccountMetricsGrid'
 import { AccountSummaryCard } from '@/components/cards/AccountSummaryCard'
 import { EmptyState } from '@/components/cards/EmptyState'
 import { ErrorState } from '@/components/cards/ErrorState'
 import { HeroCard } from '@/components/cards/HeroCard'
 import { LoadingSkeleton } from '@/components/cards/LoadingSkeleton'
+import { PreviousBillsList } from '@/components/cards/PreviousBillsList'
 import { StatCard } from '@/components/cards/StatCard'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { SectionHeader } from '@/components/layout/SectionHeader'
+import { Button } from '@/components/ui/button'
 import { useProperty } from '@/context/PropertyContext'
 import { useRefresh } from '@/context/RefreshContext'
 import { useAsync } from '@/hooks/useAsync'
@@ -25,6 +29,7 @@ import {
   buildQuickStats,
   buildSavingsSummary,
 } from '@/services/analyticsService'
+import { fetchPropertyAccount } from '@/services/accountService'
 import {
   fetchBillHistory,
   fetchLatestPublishedBill,
@@ -32,9 +37,9 @@ import {
 import { fetchPayments } from '@/services/paymentService'
 import {
   fetchCreditsForProperty,
-  fetchPropertyCreditBalance,
 } from '@/services/creditService'
 import { fetchPendingPaymentRequest } from '@/services/paymentRequestService'
+import { generateStatementPdf } from '@/services/statementService'
 import { computePaymentSummary } from '@/lib/payments'
 import { notify } from '@/lib/toast'
 import { downloadInvoice } from '@/utils/downloadInvoice'
@@ -62,13 +67,23 @@ export function HomePage() {
   const latestQuery = useAsync(
     async () => {
       if (!propertyId) return null
-      const [bill, accountCredit, credits] = await Promise.all([
+      const [bill, credits, account] = await Promise.all([
         fetchLatestPublishedBill(propertyId),
-        fetchPropertyCreditBalance(propertyId),
         fetchCreditsForProperty(propertyId),
+        fetchPropertyAccount(propertyId),
       ])
+      const accountCredit = account.credits
       if (!bill) {
-        return { bill: null, summary: null, accountCredit, credits, pendingRequest: null, payments: [] }
+        return {
+          bill: null,
+          summary: null,
+          accountCredit,
+          credits,
+          pendingRequest: null,
+          payments: [],
+          account,
+          outstanding: null,
+        }
       }
       const [payments, pendingRequest] = await Promise.all([
         fetchPayments(bill.id),
@@ -81,6 +96,20 @@ export function HomePage() {
         credits,
         pendingRequest,
         payments,
+        account,
+        outstanding: {
+          totalOutstanding: account.outstanding,
+          currentBillAmount: account.currentBillAmount,
+          previousOutstanding: account.previousOutstanding,
+          creditApplied: account.creditApplied,
+          totalDue: account.totalDue,
+          dueDate: bill.dueDate ?? account.nextDue,
+          status: account.status,
+          isOverdue: account.isOverdue,
+          overdueDays: account.overdueDays,
+          currentBillId: bill.id,
+          accountCredit,
+        },
       }
     },
     [propertyId, refreshSignal],
@@ -132,6 +161,8 @@ export function HomePage() {
   const credits = latestQuery.data?.credits ?? []
   const payments = latestQuery.data?.payments ?? []
   const pendingRequest = latestQuery.data?.pendingRequest
+  const account = latestQuery.data?.account
+  const outstanding = latestQuery.data?.outstanding
   const history = historyQuery.data ?? []
   const hasPublishedBill = Boolean(latestBill)
   const savings = hasPublishedBill
@@ -161,6 +192,7 @@ export function HomePage() {
                   latestSummary,
                   accountCredit,
                 )}
+                outstanding={outstanding}
                 onDownloadInvoice={() => {
                   if (!property) return
                   void downloadInvoice(latestBill, property)
@@ -183,6 +215,7 @@ export function HomePage() {
                 payments={payments}
                 credits={credits}
                 hasPendingVerification={Boolean(pendingRequest)}
+                outstanding={outstanding}
               />
             </>
           ) : (
@@ -194,7 +227,42 @@ export function HomePage() {
             />
           )}
 
+          {account ? (
+            <AccountMetricsGrid
+              account={account}
+              title="Account Overview"
+              description={`Balance and dues for ${property?.label ?? 'property'}`}
+              variant="client"
+            />
+          ) : null}
+
+          {account && account.unpaidBills.length > 0 ? (
+            <PreviousBillsList rows={account.unpaidBills} />
+          ) : null}
+
           <AccountCreditCard balance={accountCredit} />
+
+          {property ? (
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  void generateStatementPdf(property)
+                    .then(() => notify.success('Statement downloaded'))
+                    .catch((err: unknown) =>
+                      notify.error(
+                        err instanceof Error ? err.message : 'Download failed',
+                      ),
+                    )
+                }}
+              >
+                <Download className="h-4 w-4" />
+                Statement of Account
+              </Button>
+            </div>
+          ) : null}
 
           <section aria-label="Savings">
             <SectionHeader

@@ -14,7 +14,7 @@ import { useRefresh } from '@/context/RefreshContext'
 import { useAsync } from '@/hooks/useAsync'
 import { pagePanel } from '@/lib/motion'
 import { fetchAnalytics } from '@/services/analyticsService'
-import { formatCurrency, formatEnergy } from '@/utils/format'
+import { formatCurrency, formatEnergy, formatDate } from '@/utils/format'
 
 const MonthlyBarChart = lazy(() =>
   import('@/components/charts/MonthlyBarChart').then((module) => ({
@@ -61,6 +61,10 @@ export function AnalyticsPage() {
             outstandingCredits: 0,
             creditsUsed: 0,
             totalCreditsGiven: 0,
+            accountOutstanding: 0,
+            pendingBills: 0,
+            lastPaymentAmount: null,
+            nextDue: null,
           },
         }
       }
@@ -174,19 +178,52 @@ export function AnalyticsPage() {
                   delay={0.12}
                 />
                 <StatCard
+                  label="Outstanding"
+                  value={formatCurrency(summary.accountOutstanding ?? 0)}
+                  delay={0.14}
+                />
+                <StatCard
+                  label="Pending Bills"
+                  value={String(summary.pendingBills ?? 0)}
+                  delay={0.15}
+                />
+                <StatCard
+                  label="Credits"
+                  value={formatCurrency(summary.outstandingCredits)}
+                  delay={0.16}
+                />
+                <StatCard
+                  label="Last Payment"
+                  value={
+                    summary.lastPaymentAmount != null
+                      ? formatCurrency(summary.lastPaymentAmount)
+                      : '—'
+                  }
+                  delay={0.17}
+                />
+                <StatCard
+                  label="Next Due"
+                  value={
+                    summary.nextDue
+                      ? formatDate(summary.nextDue)
+                      : '—'
+                  }
+                  delay={0.18}
+                />
+                <StatCard
                   label="Outstanding Credits"
                   value={formatCurrency(summary.outstandingCredits)}
-                  delay={0.14}
+                  delay={0.19}
                 />
                 <StatCard
                   label="Credits Used"
                   value={formatCurrency(summary.creditsUsed)}
-                  delay={0.16}
+                  delay={0.2}
                 />
                 <StatCard
                   label="Total Credits Given"
                   value={formatCurrency(summary.totalCreditsGiven)}
-                  delay={0.18}
+                  delay={0.21}
                 />
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
